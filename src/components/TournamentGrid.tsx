@@ -78,8 +78,8 @@ export const TournamentGrid = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: idx * 0.1 }}
-                whileHover={{ y: -8 }}
-                className="glass rounded-2xl p-6 relative overflow-hidden group"
+              whileHover={{ y: -8 }}
+              className="glass rounded-2xl p-6 relative overflow-hidden group"
               >
                 {/* Live Badge */}
                 {tournament.isLive && (
@@ -148,10 +148,16 @@ export const TournamentGrid = () => {
 
                 {/* Register Button */}
                 <Button 
-                  className="w-full bg-toxic-green hover:bg-toxic-green/90 text-void-black font-bold uppercase tracking-wider"
+                  className="w-full bg-toxic-green hover:bg-toxic-green/90 text-void-black font-bold uppercase tracking-wider relative overflow-hidden group/btn"
                   size="lg"
                 >
-                  Register Now
+                  <motion.div
+                    className="absolute inset-0 bg-white/20"
+                    initial={{ x: "-100%" }}
+                    whileHover={{ x: "100%" }}
+                    transition={{ duration: 0.5 }}
+                  />
+                  <span className="relative z-10">Register Now</span>
                 </Button>
               </motion.div>
             );

@@ -1,28 +1,44 @@
-import { motion } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Zap } from "lucide-react";
 import heroBg from "@/assets/hero-bg.jpg";
+import { useNavigate } from "react-router-dom";
 
 export const Hero = () => {
+  const navigate = useNavigate();
+  const { scrollY } = useScroll();
+  
+  // Parallax effects
+  const y = useTransform(scrollY, [0, 500], [0, 150]);
+  const opacity = useTransform(scrollY, [0, 300], [1, 0]);
+  const scale = useTransform(scrollY, [0, 300], [1, 0.8]);
+
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-      {/* Background Image with Overlay */}
-      <div 
+      {/* Background Image with Parallax */}
+      <motion.div 
+        style={{ y }}
         className="absolute inset-0 z-0"
-        style={{
-          backgroundImage: `url(${heroBg})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-        }}
       >
+        <div 
+          className="absolute inset-0"
+          style={{
+            backgroundImage: `url(${heroBg})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          }}
+        />
         <div className="absolute inset-0 bg-gradient-to-b from-void-black/80 via-void-black/60 to-void-black" />
-      </div>
+      </motion.div>
 
       {/* Hexagon Pattern Overlay */}
       <div className="absolute inset-0 hexagon-pattern z-0" />
 
-      {/* Content */}
-      <div className="container mx-auto px-4 z-10 text-center">
+      {/* Content with Parallax */}
+      <motion.div 
+        style={{ opacity, scale }}
+        className="container mx-auto px-4 z-10 text-center"
+      >
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -63,6 +79,7 @@ export const Hero = () => {
           >
             <Button 
               size="lg" 
+              onClick={() => navigate("/register")}
               className="bg-toxic-green text-void-black hover:bg-toxic-green/90 font-bold text-lg px-8 py-6 animate-pulse-glow"
             >
               <Zap className="mr-2 h-5 w-5" />
@@ -70,10 +87,11 @@ export const Hero = () => {
             </Button>
             <Button 
               size="lg" 
+              onClick={() => navigate("/dashboard")}
               variant="outline"
               className="glass border-2 hover:bg-white/10 font-bold text-lg px-8 py-6"
             >
-              View Brackets
+              View Dashboard
             </Button>
           </motion.div>
 
@@ -96,7 +114,7 @@ export const Hero = () => {
             ))}
           </motion.div>
         </motion.div>
-      </div>
+      </motion.div>
 
       {/* Animated Bottom Fade */}
       <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent z-10" />
