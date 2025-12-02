@@ -3,6 +3,10 @@ import { Trophy, TrendingUp, Award, Zap, Target, Crown, Star, Shield } from "luc
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CustomCursor } from "@/components/CustomCursor";
+import { ParticleBackground } from "@/components/ParticleBackground";
+import { Navbar } from "@/components/Navbar";
+import { Footer } from "@/components/Footer";
 
 const stats = [
   { label: "Total Earnings", value: "₹12,450", icon: Trophy, color: "toxic-green", trend: "+15%" },
@@ -27,7 +31,11 @@ const achievements = [
 
 export default function Dashboard() {
   return (
-    <div className="min-h-screen py-20 px-4 hexagon-pattern">
+    <div className="min-h-screen relative">
+      <CustomCursor />
+      <ParticleBackground />
+      <Navbar />
+      <div className="pt-24 pb-12 px-4 hexagon-pattern">
       <div className="container mx-auto max-w-7xl">
         {/* Header */}
         <motion.div
@@ -189,6 +197,8 @@ export default function Dashboard() {
           </TabsContent>
         </Tabs>
       </div>
+      </div>
+      <Footer />
     </div>
   );
 }

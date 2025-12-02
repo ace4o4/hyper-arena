@@ -8,6 +8,9 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { CustomCursor } from "@/components/CustomCursor";
+import { ParticleBackground } from "@/components/ParticleBackground";
+import { Navbar } from "@/components/Navbar";
 
 type Step = "game" | "mode" | "details" | "payment" | "success";
 
@@ -30,7 +33,11 @@ export default function Registration() {
   };
 
   return (
-    <div className="min-h-screen py-20 px-4 hexagon-pattern flex items-center justify-center">
+    <div className="min-h-screen relative">
+      <CustomCursor />
+      <ParticleBackground />
+      <Navbar />
+      <div className="pt-24 pb-12 px-4 hexagon-pattern flex items-center justify-center min-h-screen">
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -329,6 +336,7 @@ export default function Registration() {
           </AnimatePresence>
         </Card>
       </motion.div>
+      </div>
     </div>
   );
 }
