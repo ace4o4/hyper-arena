@@ -109,6 +109,12 @@ All colors MUST be HSL.
     border: 1px solid var(--glass-border);
   }
   
+  .glass-strong {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+  
   .glow-primary {
     box-shadow: var(--glow-primary);
   }
@@ -121,6 +127,10 @@ All colors MUST be HSL.
     box-shadow: var(--glow-danger);
   }
   
+  .glow-intense {
+    box-shadow: 0 0 30px hsl(158 100% 50% / 0.6), 0 0 60px hsl(158 100% 50% / 0.3);
+  }
+  
   .text-gradient-primary {
     @apply bg-gradient-to-r from-toxic-green to-neon-cyan bg-clip-text text-transparent;
   }
@@ -129,7 +139,73 @@ All colors MUST be HSL.
     @apply bg-gradient-to-r from-cyber-purple to-neon-cyan bg-clip-text text-transparent;
   }
   
+  .text-gradient-fire {
+    @apply bg-gradient-to-r from-neon-red via-yellow-500 to-neon-red bg-clip-text text-transparent;
+  }
+  
   .hexagon-pattern {
     background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0l25.98 15v30L30 60 4.02 45V15z' fill='none' stroke='%23ffffff' stroke-width='0.5' opacity='0.05'/%3E%3C/svg%3E");
+  }
+  
+  .scan-line {
+    background: linear-gradient(
+      to bottom,
+      transparent 50%,
+      rgba(0, 255, 157, 0.03) 50%
+    );
+    background-size: 100% 4px;
+    pointer-events: none;
+  }
+  
+  .noise-overlay {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    opacity: 0.03;
+    pointer-events: none;
+  }
+  
+  .border-glow {
+    position: relative;
+  }
+  
+  .border-glow::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    background: linear-gradient(45deg, hsl(var(--primary)), hsl(var(--accent)), hsl(var(--cyber-purple)));
+    border-radius: inherit;
+    z-index: -1;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  
+  .border-glow:hover::before {
+    opacity: 1;
+    animation: border-rotate 3s linear infinite;
+  }
+  
+  @keyframes border-rotate {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  
+  .shimmer {
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.1),
+      transparent
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+  }
+  
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
   }
 }
