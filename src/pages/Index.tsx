@@ -7,6 +7,8 @@ import { Footer } from "@/components/Footer";
 import { CustomCursor } from "@/components/CustomCursor";
 import { ParticleBackground } from "@/components/ParticleBackground";
 import { Navbar } from "@/components/Navbar";
+import { PrizePool } from "@/components/PrizePool";
+import { PointsTable } from "@/components/PointsTable";
 
 const Index = () => {
   return (
@@ -16,6 +18,8 @@ const Index = () => {
       <Navbar />
       <Hero />
       <GameSelector />
+      <PrizePool />
+      <PointsTable />
       <TournamentGrid />
       <TournamentBracket />
       <LiveTicker />
