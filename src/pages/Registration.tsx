@@ -1,47 +1,74 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Gamepad2, Users, User, CreditCard, Trophy, ArrowRight, Check } from "lucide-react";
+import { Gamepad2, Users, CreditCard, Trophy, ArrowRight, Check, Phone, Mail, User, Hash, Shield, Crown, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { CustomCursor } from "@/components/CustomCursor";
 import { ParticleBackground } from "@/components/ParticleBackground";
 import { Navbar } from "@/components/Navbar";
 
 type Step = "game" | "mode" | "details" | "payment" | "success";
 
+interface PlayerDetails {
+  ign: string;
+  uid: string;
+  email: string;
+}
+
 export default function Registration() {
   const [step, setStep] = useState<Step>("game");
   const [selectedGame, setSelectedGame] = useState("");
-  const [selectedMode, setSelectedMode] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Team details
+  const [teamName, setTeamName] = useState("");
+  const [leaderPhone, setLeaderPhone] = useState("");
+  const [leaderEmail, setLeaderEmail] = useState("");
+  const [leaderIGN, setLeaderIGN] = useState("");
+  const [leaderUID, setLeaderUID] = useState("");
+  
+  // Team members (4 players + 1 substitute)
+  const [players, setPlayers] = useState<PlayerDetails[]>([
+    { ign: "", uid: "", email: "" },
+    { ign: "", uid: "", email: "" },
+    { ign: "", uid: "", email: "" },
+    { ign: "", uid: "", email: "" },
+  ]);
+  const [substitute, setSubstitute] = useState<PlayerDetails>({ ign: "", uid: "", email: "" });
+
+  const updatePlayer = (index: number, field: keyof PlayerDetails, value: string) => {
+    const updated = [...players];
+    updated[index][field] = value;
+    setPlayers(updated);
+  };
 
   const handleSubmit = () => {
     setStep("success");
     setTimeout(() => {
       toast({
         title: "Registration Successful!",
-        description: "You've been registered for the tournament. Check your email for details.",
+        description: "Your squad has been registered. Check your email for QR tickets.",
       });
       navigate("/dashboard");
     }, 2000);
   };
 
+  const playerLabels = ["Player 2", "Player 3", "Player 4", "Player 5"];
+  const playerIcons = [User, User, User, User];
+
   return (
     <div className="min-h-screen relative">
-      <CustomCursor />
       <ParticleBackground />
       <Navbar />
       <div className="pt-24 pb-12 px-4 hexagon-pattern flex items-center justify-center min-h-screen">
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="w-full max-w-2xl"
+        className="w-full max-w-4xl"
       >
         {/* Progress Steps */}
         <div className="mb-8 flex items-center justify-between">
@@ -92,7 +119,7 @@ export default function Registration() {
                       whileHover={{ scale: 1.05, y: -8 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => setSelectedGame(game)}
-                      className={`glass rounded-xl p-6 cursor-pointer border-2 transition-all ${
+                      className={`glass rounded-xl p-6 cursor-pointer border-2 transition-all relative ${
                         selectedGame === game
                           ? "border-toxic-green glow-primary bg-toxic-green/10"
                           : "border-border/20 hover:border-toxic-green/50"
@@ -100,7 +127,8 @@ export default function Registration() {
                     >
                       <Gamepad2 className="h-12 w-12 text-toxic-green mb-4" />
                       <h3 className="text-xl font-black mb-2">{game}</h3>
-                      <p className="text-sm text-muted-foreground">Battle Royale</p>
+                      <p className="text-sm text-muted-foreground">Battle Royale - Squad</p>
+                      <div className="mt-3 text-xs text-neon-cyan">1 Tournament Active</div>
                       {selectedGame === game && (
                         <motion.div
                           initial={{ scale: 0 }}
@@ -111,6 +139,17 @@ export default function Registration() {
                         </motion.div>
                       )}
                     </motion.div>
+                  ))}
+                </div>
+
+                {/* Coming Soon */}
+                <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {["PUBG Mobile", "COD Mobile", "Valorant", "Apex Legends"].map((game) => (
+                    <div key={game} className="glass rounded-xl p-4 opacity-50 cursor-not-allowed">
+                      <Gamepad2 className="h-8 w-8 text-muted-foreground mb-2" />
+                      <h4 className="text-sm font-bold">{game}</h4>
+                      <span className="text-xs text-neon-red">Coming Soon</span>
+                    </div>
                   ))}
                 </div>
 
@@ -125,7 +164,7 @@ export default function Registration() {
               </motion.div>
             )}
 
-            {/* Step 2: Mode Selection */}
+            {/* Step 2: Mode Selection - Squad Only */}
             {step === "mode" && (
               <motion.div
                 key="mode"
@@ -133,46 +172,54 @@ export default function Registration() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -50 }}
               >
-                <h2 className="text-3xl font-black mb-2 text-gradient-primary">Select Game Mode</h2>
-                <p className="text-muted-foreground mb-8">Choose your preferred battle mode</p>
+                <h2 className="text-3xl font-black mb-2 text-gradient-primary">Game Mode</h2>
+                <p className="text-muted-foreground mb-8">Squad mode - Team Leader registers for the entire team</p>
 
-                <RadioGroup value={selectedMode} onValueChange={setSelectedMode} className="space-y-4">
-                  {[
-                    { value: "solo", icon: User, label: "Solo", desc: "1v1 Individual matches" },
-                    { value: "squad", icon: Users, label: "Squad", desc: "4v4 Team battles" },
-                  ].map((mode) => {
-                    const Icon = mode.icon;
-                    return (
-                      <motion.div
-                        key={mode.value}
-                        whileHover={{ scale: 1.02, x: 4 }}
-                        className={`glass rounded-xl p-6 cursor-pointer border-2 transition-all ${
-                          selectedMode === mode.value
-                            ? "border-toxic-green glow-primary bg-toxic-green/10"
-                            : "border-border/20"
-                        }`}
-                      >
-                        <RadioGroupItem value={mode.value} id={mode.value} className="sr-only" />
-                        <Label htmlFor={mode.value} className="flex items-center gap-4 cursor-pointer">
-                          <Icon className="h-8 w-8 text-toxic-green" />
-                          <div className="flex-1">
-                            <div className="text-xl font-black mb-1">{mode.label}</div>
-                            <div className="text-sm text-muted-foreground">{mode.desc}</div>
-                          </div>
-                          {selectedMode === mode.value && (
-                            <motion.div
-                              initial={{ scale: 0 }}
-                              animate={{ scale: 1 }}
-                              className="h-6 w-6 rounded-full bg-toxic-green flex items-center justify-center"
-                            >
-                              <Check className="h-4 w-4 text-void-black" />
-                            </motion.div>
-                          )}
-                        </Label>
-                      </motion.div>
-                    );
-                  })}
-                </RadioGroup>
+                <div className="space-y-4">
+                  {/* Squad Mode - Active */}
+                  <motion.div
+                    whileHover={{ scale: 1.02, x: 4 }}
+                    className="glass rounded-xl p-6 border-2 border-toxic-green glow-primary bg-toxic-green/10 relative"
+                  >
+                    <div className="flex items-center gap-4">
+                      <Users className="h-10 w-10 text-toxic-green" />
+                      <div className="flex-1">
+                        <div className="text-xl font-black mb-1 flex items-center gap-2">
+                          Squad Mode
+                          <span className="text-xs bg-toxic-green text-void-black px-2 py-1 rounded-full">ACTIVE</span>
+                        </div>
+                        <div className="text-sm text-muted-foreground">4v4 Team battles • Team Leader Registration</div>
+                      </div>
+                      <div className="h-6 w-6 rounded-full bg-toxic-green flex items-center justify-center">
+                        <Check className="h-4 w-4 text-void-black" />
+                      </div>
+                    </div>
+                  </motion.div>
+
+                  {/* Solo Mode - Disabled */}
+                  <div className="glass rounded-xl p-6 border-2 border-border/20 opacity-40 cursor-not-allowed">
+                    <div className="flex items-center gap-4">
+                      <User className="h-10 w-10 text-muted-foreground" />
+                      <div className="flex-1">
+                        <div className="text-xl font-black mb-1 flex items-center gap-2">
+                          Solo Mode
+                          <span className="text-xs bg-neon-red/20 text-neon-red px-2 py-1 rounded-full">DISABLED</span>
+                        </div>
+                        <div className="text-sm text-muted-foreground">Individual matches not available for this tournament</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-6 p-4 glass rounded-xl border border-neon-cyan/30">
+                  <div className="flex items-start gap-3">
+                    <Crown className="h-5 w-5 text-neon-cyan mt-0.5" />
+                    <div>
+                      <h4 className="font-bold text-neon-cyan">Team Leader Registration</h4>
+                      <p className="text-sm text-muted-foreground">As team leader, you'll register all 4 players and 1 substitute. QR tickets will be generated for each player.</p>
+                    </div>
+                  </div>
+                </div>
 
                 <div className="flex gap-4 mt-8">
                   <Button
@@ -183,8 +230,7 @@ export default function Registration() {
                     Back
                   </Button>
                   <Button
-                    onClick={() => selectedMode && setStep("details")}
-                    disabled={!selectedMode}
+                    onClick={() => setStep("details")}
                     className="flex-1 bg-toxic-green hover:bg-toxic-green/90 text-void-black font-bold"
                   >
                     Continue <ArrowRight className="ml-2 h-5 w-5" />
@@ -200,48 +246,172 @@ export default function Registration() {
                 initial={{ opacity: 0, x: 50 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -50 }}
+                className="max-h-[70vh] overflow-y-auto pr-2"
               >
-                <h2 className="text-3xl font-black mb-2 text-gradient-primary">Player Details</h2>
-                <p className="text-muted-foreground mb-8">Enter your in-game information</p>
+                <h2 className="text-3xl font-black mb-2 text-gradient-primary">Team Registration</h2>
+                <p className="text-muted-foreground mb-8">Enter details for all team members</p>
 
-                <div className="space-y-6">
-                  <div>
-                    <Label htmlFor="uid" className="text-foreground mb-2 block">Player UID *</Label>
-                    <Input
-                      id="uid"
-                      type="number"
-                      placeholder="Enter your game UID"
-                      className="glass border-border/30 focus:border-toxic-green transition-colors"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="ign" className="text-foreground mb-2 block">In-Game Name *</Label>
-                    <Input
-                      id="ign"
-                      placeholder="Your IGN"
-                      className="glass border-border/30 focus:border-toxic-green transition-colors"
-                    />
-                  </div>
-
-                  {selectedMode === "squad" && (
+                {/* Team Info */}
+                <div className="glass rounded-xl p-6 mb-6 border border-neon-cyan/30">
+                  <h3 className="text-lg font-bold text-neon-cyan mb-4 flex items-center gap-2">
+                    <Shield className="h-5 w-5" /> Team Information
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="team" className="text-foreground mb-2 block">Team Name</Label>
+                      <Label className="text-foreground mb-2 block">Team Name *</Label>
                       <Input
-                        id="team"
-                        placeholder="Your team name"
-                        className="glass border-border/30 focus:border-toxic-green transition-colors"
+                        value={teamName}
+                        onChange={(e) => setTeamName(e.target.value)}
+                        placeholder="Enter team name"
+                        className="glass border-border/30 focus:border-toxic-green"
                       />
                     </div>
-                  )}
+                  </div>
+                </div>
 
-                  <div>
-                    <Label htmlFor="discord" className="text-foreground mb-2 block">Discord ID</Label>
-                    <Input
-                      id="discord"
-                      placeholder="username#0000"
-                      className="glass border-border/30 focus:border-toxic-green transition-colors"
-                    />
+                {/* Leader Details */}
+                <div className="glass rounded-xl p-6 mb-6 border border-toxic-green/30">
+                  <h3 className="text-lg font-bold text-toxic-green mb-4 flex items-center gap-2">
+                    <Crown className="h-5 w-5" /> Team Leader (You)
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-foreground mb-2 flex items-center gap-2">
+                        <User className="h-4 w-4" /> In-Game Name (IGN) *
+                      </Label>
+                      <Input
+                        value={leaderIGN}
+                        onChange={(e) => setLeaderIGN(e.target.value)}
+                        placeholder="Your IGN"
+                        className="glass border-border/30 focus:border-toxic-green"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-foreground mb-2 flex items-center gap-2">
+                        <Hash className="h-4 w-4" /> Player UID *
+                      </Label>
+                      <Input
+                        value={leaderUID}
+                        onChange={(e) => setLeaderUID(e.target.value)}
+                        type="number"
+                        placeholder="Your game UID"
+                        className="glass border-border/30 focus:border-toxic-green"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-foreground mb-2 flex items-center gap-2">
+                        <Phone className="h-4 w-4" /> Phone Number *
+                      </Label>
+                      <Input
+                        value={leaderPhone}
+                        onChange={(e) => setLeaderPhone(e.target.value)}
+                        type="tel"
+                        placeholder="+91 XXXXX XXXXX"
+                        className="glass border-border/30 focus:border-toxic-green"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-foreground mb-2 flex items-center gap-2">
+                        <Mail className="h-4 w-4" /> Email Address *
+                      </Label>
+                      <Input
+                        value={leaderEmail}
+                        onChange={(e) => setLeaderEmail(e.target.value)}
+                        type="email"
+                        placeholder="leader@email.com"
+                        className="glass border-border/30 focus:border-toxic-green"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Team Members */}
+                {players.map((player, idx) => (
+                  <div key={idx} className="glass rounded-xl p-6 mb-4 border border-cyber-purple/30">
+                    <h3 className="text-lg font-bold text-cyber-purple mb-4 flex items-center gap-2">
+                      <UserPlus className="h-5 w-5" /> {playerLabels[idx]}
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <Label className="text-foreground mb-2 flex items-center gap-2">
+                          <User className="h-4 w-4" /> IGN *
+                        </Label>
+                        <Input
+                          value={player.ign}
+                          onChange={(e) => updatePlayer(idx, "ign", e.target.value)}
+                          placeholder="Player IGN"
+                          className="glass border-border/30 focus:border-cyber-purple"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-foreground mb-2 flex items-center gap-2">
+                          <Hash className="h-4 w-4" /> UID *
+                        </Label>
+                        <Input
+                          value={player.uid}
+                          onChange={(e) => updatePlayer(idx, "uid", e.target.value)}
+                          type="number"
+                          placeholder="Player UID"
+                          className="glass border-border/30 focus:border-cyber-purple"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-foreground mb-2 flex items-center gap-2">
+                          <Mail className="h-4 w-4" /> Email *
+                        </Label>
+                        <Input
+                          value={player.email}
+                          onChange={(e) => updatePlayer(idx, "email", e.target.value)}
+                          type="email"
+                          placeholder="player@email.com"
+                          className="glass border-border/30 focus:border-cyber-purple"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Substitute */}
+                <div className="glass rounded-xl p-6 mb-6 border border-neon-red/30">
+                  <h3 className="text-lg font-bold text-neon-red mb-4 flex items-center gap-2">
+                    <Shield className="h-5 w-5" /> Substitute Player (Optional)
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <Label className="text-foreground mb-2 flex items-center gap-2">
+                        <User className="h-4 w-4" /> IGN
+                      </Label>
+                      <Input
+                        value={substitute.ign}
+                        onChange={(e) => setSubstitute({ ...substitute, ign: e.target.value })}
+                        placeholder="Substitute IGN"
+                        className="glass border-border/30 focus:border-neon-red"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-foreground mb-2 flex items-center gap-2">
+                        <Hash className="h-4 w-4" /> UID
+                      </Label>
+                      <Input
+                        value={substitute.uid}
+                        onChange={(e) => setSubstitute({ ...substitute, uid: e.target.value })}
+                        type="number"
+                        placeholder="Substitute UID"
+                        className="glass border-border/30 focus:border-neon-red"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-foreground mb-2 flex items-center gap-2">
+                        <Mail className="h-4 w-4" /> Email
+                      </Label>
+                      <Input
+                        value={substitute.email}
+                        onChange={(e) => setSubstitute({ ...substitute, email: e.target.value })}
+                        type="email"
+                        placeholder="sub@email.com"
+                        className="glass border-border/30 focus:border-neon-red"
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -272,16 +442,22 @@ export default function Registration() {
                 exit={{ opacity: 0, x: -50 }}
               >
                 <h2 className="text-3xl font-black mb-2 text-gradient-primary">Payment</h2>
-                <p className="text-muted-foreground mb-8">Complete your tournament entry</p>
+                <p className="text-muted-foreground mb-8">Complete your squad entry</p>
 
                 <div className="glass rounded-xl p-6 mb-6 border border-toxic-green/30">
                   <div className="flex items-center justify-between mb-4">
-                    <span className="text-muted-foreground">Entry Fee</span>
-                    <span className="text-2xl font-black text-toxic-green">₹100</span>
+                    <span className="text-muted-foreground">Entry Fee (per squad)</span>
+                    <span className="text-2xl font-black text-toxic-green">₹500</span>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Prize Pool</span>
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-muted-foreground">Tournament Prize Pool</span>
                     <span className="text-xl font-bold text-neon-cyan">₹50,000</span>
+                  </div>
+                  <div className="border-t border-border/30 pt-4">
+                    <div className="text-sm text-muted-foreground">
+                      <p>• QR Tickets will be sent to all registered email IDs</p>
+                      <p>• Team Leader can share tickets from dashboard</p>
+                    </div>
                   </div>
                 </div>
 
@@ -329,8 +505,8 @@ export default function Registration() {
                 >
                   <Trophy className="h-24 w-24 text-toxic-green mx-auto mb-6" />
                 </motion.div>
-                <h2 className="text-4xl font-black mb-4 text-gradient-primary">You're In!</h2>
-                <p className="text-xl text-muted-foreground">Registration successful. Good luck!</p>
+                <h2 className="text-4xl font-black mb-4 text-gradient-primary">Squad Registered!</h2>
+                <p className="text-xl text-muted-foreground">QR tickets sent to all players. Good luck!</p>
               </motion.div>
             )}
           </AnimatePresence>

@@ -37,14 +37,17 @@ export const Navbar = () => {
   return (
     <>
       <motion.nav
-        initial={{ y: -100 }}
-        animate={{ y: 0 }}
+        initial={{ y: -100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          isScrolled 
-            ? "py-2 glass border-b border-border/10" 
-            : "py-4 bg-transparent"
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 glass-strong border-b border-border/20 ${
+          isScrolled ? "py-2" : "py-4"
         }`}
+        style={{
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+          background: "rgba(5, 5, 5, 0.8)",
+        }}
       >
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between">
@@ -80,7 +83,6 @@ export const Navbar = () => {
                 >
                   <Link
                     to={link.href}
-                    data-cursor="Navigate"
                     className={`relative px-4 py-2 rounded-lg font-rajdhani font-medium transition-all duration-300 flex items-center gap-2 group ${
                       location.pathname === link.href
                         ? "text-primary"
@@ -90,7 +92,6 @@ export const Navbar = () => {
                     <link.icon className="w-4 h-4" />
                     <span>{link.name}</span>
                     
-                    {/* Active indicator */}
                     {location.pathname === link.href && (
                       <motion.div
                         layoutId="activeNav"
@@ -99,7 +100,6 @@ export const Navbar = () => {
                       />
                     )}
                     
-                    {/* Hover effect */}
                     <motion.div
                       className="absolute bottom-0 left-1/2 h-0.5 bg-primary rounded-full"
                       initial={{ width: 0, x: "-50%" }}
@@ -154,6 +154,10 @@ export const Navbar = () => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             className="fixed inset-0 z-40 pt-20 glass md:hidden"
+            style={{
+              backdropFilter: "blur(20px)",
+              background: "rgba(5, 5, 5, 0.95)",
+            }}
           >
             <div className="container mx-auto px-4 py-8">
               <div className="flex flex-col gap-4">

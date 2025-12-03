@@ -13,13 +13,25 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
 
-// Loading component
+// Custom fast loader
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">
-    <div className="relative">
-      <div className="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className="w-8 h-8 bg-primary/20 rounded-full animate-pulse" />
+    <div className="relative flex flex-col items-center gap-4">
+      <div className="relative w-20 h-20">
+        <div className="absolute inset-0 border-4 border-primary/20 rounded-lg rotate-45 animate-pulse" />
+        <div className="absolute inset-2 border-4 border-primary/40 rounded-lg rotate-45 animate-spin" style={{ animationDuration: '2s' }} />
+        <div className="absolute inset-4 border-4 border-primary rounded-lg rotate-45 animate-ping" style={{ animationDuration: '1s' }} />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-4 h-4 bg-primary rounded-full animate-pulse" />
+        </div>
+      </div>
+      <div className="flex items-center gap-1">
+        <span className="text-primary font-orbitron font-bold text-sm tracking-widest">LOADING</span>
+        <span className="flex gap-1">
+          <span className="w-1 h-1 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+          <span className="w-1 h-1 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+          <span className="w-1 h-1 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+        </span>
       </div>
     </div>
   </div>

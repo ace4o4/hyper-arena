@@ -13,7 +13,6 @@ export const Hero = () => {
     offset: ["start start", "end start"]
   });
   
-  // Smooth parallax effects
   const bgY = useTransform(scrollYProgress, [0, 1], ["0%", "30%"]);
   const contentY = useTransform(scrollYProgress, [0, 1], ["0%", "20%"]);
   const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
@@ -34,7 +33,6 @@ export const Hero = () => {
             backgroundPosition: 'center',
           }}
         />
-        {/* Gradient overlays for depth */}
         <div className="absolute inset-0 bg-gradient-to-b from-background/90 via-background/50 to-background" />
         <div className="absolute inset-0 bg-gradient-to-r from-cyber-purple/20 via-transparent to-neon-cyan/20" />
       </motion.div>
@@ -59,7 +57,6 @@ export const Hero = () => {
         }}
       />
 
-      {/* Hexagon Pattern Overlay */}
       <div className="absolute inset-0 hexagon-pattern z-[2]" />
 
       {/* Content with Parallax */}
@@ -72,27 +69,16 @@ export const Hero = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
         >
+          {/* GLITCH HEADLINE - Top position */}
           <motion.h1 
-            className="text-6xl md:text-8xl lg:text-9xl font-black mb-6"
+            className="text-5xl md:text-7xl lg:text-8xl font-black mb-8 relative"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8 }}
           >
-            <motion.span 
-              className="text-gradient-primary inline-block"
-              animate={{ 
-                textShadow: [
-                  "0 0 20px hsl(var(--primary) / 0.5)",
-                  "0 0 40px hsl(var(--primary) / 0.8)",
-                  "0 0 20px hsl(var(--primary) / 0.5)",
-                ]
-              }}
-              transition={{ duration: 2, repeat: Infinity }}
-            >
-              DOMINATE
-            </motion.span>
-            <br />
-            <span className="text-foreground text-neon">THE ARENA</span>
+            <span className="glitch-text text-gradient-primary" data-text="DOMINATE THE ARENA">
+              DOMINATE THE ARENA
+            </span>
           </motion.h1>
 
           <motion.p 
@@ -190,7 +176,6 @@ export const Hero = () => {
         </motion.div>
       </motion.div>
 
-      {/* Bottom fade */}
       <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent z-10" />
     </section>
   );
