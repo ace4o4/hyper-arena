@@ -5,7 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
-const tournaments = [
+const activeTournaments = [
   {
     id: 1,
     title: "BGMI Championship",
@@ -16,6 +16,7 @@ const tournaments = [
     date: "15 Dec 2025",
     isLive: true,
     entryFee: "₹100",
+    isActive: true,
   },
   {
     id: 2,
@@ -25,30 +26,28 @@ const tournaments = [
     slots: 48,
     filled: 32,
     date: "18 Dec 2025",
-    isLive: false,
+    isLive: true,
     entryFee: "₹50",
+    isActive: true,
   },
+];
+
+const comingSoonTournaments = [
   {
     id: 3,
     title: "Squad Showdown",
     game: "BGMI",
     prize: "₹75,000",
-    slots: 80,
-    filled: 72,
-    date: "20 Dec 2025",
-    isLive: true,
-    entryFee: "₹200",
+    date: "Coming Soon",
+    isActive: false,
   },
   {
     id: 4,
     title: "Solo Masters",
     game: "Free Fire",
     prize: "₹40,000",
-    slots: 50,
-    filled: 28,
-    date: "22 Dec 2025",
-    isLive: false,
-    entryFee: "₹150",
+    date: "Coming Soon",
+    isActive: false,
   },
 ];
 
@@ -96,8 +95,9 @@ export const TournamentGrid = () => {
           <p className="text-xl text-muted-foreground">Register now and claim your victory</p>
         </motion.div>
 
-        <div className="grid md:grid-cols-2 gap-6 max-w-6xl mx-auto">
-          {tournaments.map((tournament, idx) => {
+        {/* Active Tournaments */}
+        <div className="grid md:grid-cols-2 gap-6 max-w-6xl mx-auto mb-12">
+          {activeTournaments.map((tournament, idx) => {
             const fillPercentage = (tournament.filled / tournament.slots) * 100;
             
             return (
@@ -108,7 +108,7 @@ export const TournamentGrid = () => {
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: idx * 0.1 }}
                 whileHover={{ y: -10, scale: 1.02 }}
-                className="glass-strong rounded-2xl p-6 relative overflow-hidden group cursor-pointer"
+                className="glass-strong rounded-2xl p-6 relative overflow-hidden group cursor-pointer border border-primary/20"
                 onClick={() => navigate("/register")}
               >
                 {/* Hover glow effect */}
@@ -117,19 +117,17 @@ export const TournamentGrid = () => {
                 </div>
 
                 {/* Live Badge */}
-                {tournament.isLive && (
+                <motion.div
+                  className="absolute top-4 right-4 flex items-center gap-2 bg-destructive/20 backdrop-blur-sm border border-destructive/50 rounded-full px-3 py-1 pulse-ring"
+                >
                   <motion.div
-                    className="absolute top-4 right-4 flex items-center gap-2 bg-destructive/20 backdrop-blur-sm border border-destructive/50 rounded-full px-3 py-1 pulse-ring"
+                    animate={{ scale: [1, 1.2, 1] }}
+                    transition={{ duration: 1, repeat: Infinity }}
                   >
-                    <motion.div
-                      animate={{ scale: [1, 1.2, 1] }}
-                      transition={{ duration: 1, repeat: Infinity }}
-                    >
-                      <CircleDot className="h-3 w-3 text-destructive" />
-                    </motion.div>
-                    <span className="text-xs font-bold text-destructive uppercase tracking-wider">Live</span>
+                    <CircleDot className="h-3 w-3 text-destructive" />
                   </motion.div>
-                )}
+                  <span className="text-xs font-bold text-destructive uppercase tracking-wider">Live</span>
+                </motion.div>
 
                 {/* Game Badge */}
                 <div className="mb-4">
@@ -187,35 +185,83 @@ export const TournamentGrid = () => {
                 </div>
 
                 {/* Register Button */}
-                <motion.div
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
+                <Button 
+                  className="w-full btn-cyber font-bold uppercase tracking-wider"
+                  size="lg"
                 >
-                  <Button 
-                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold uppercase tracking-wider relative overflow-hidden group/btn"
-                    size="lg"
-                  >
-                    <span className="relative z-10 flex items-center justify-center gap-2">
-                      Register Now
-                      <motion.div
-                        initial={{ x: 0 }}
-                        whileHover={{ x: 5 }}
-                      >
-                        <ArrowRight className="w-4 h-4" />
-                      </motion.div>
-                    </span>
-                    {/* Shine effect */}
-                    <motion.div
-                      className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
-                      initial={{ x: "-100%" }}
-                      whileHover={{ x: "100%" }}
-                      transition={{ duration: 0.5 }}
-                    />
-                  </Button>
-                </motion.div>
+                  <span className="flex items-center justify-center gap-2">
+                    Register Now
+                    <ArrowRight className="w-4 h-4" />
+                  </span>
+                </Button>
               </motion.div>
             );
           })}
+        </div>
+
+        {/* Coming Soon Tournaments */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="text-center mb-8"
+        >
+          <span className="text-muted-foreground text-lg">More tournaments coming soon...</span>
+        </motion.div>
+
+        <div className="grid md:grid-cols-2 gap-6 max-w-6xl mx-auto opacity-60">
+          {comingSoonTournaments.map((tournament, idx) => (
+            <motion.div
+              key={tournament.id}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: idx * 0.1 }}
+              className="glass rounded-2xl p-6 relative overflow-hidden border border-muted/20"
+            >
+              {/* Coming Soon Badge */}
+              <div className="absolute top-4 right-4 bg-muted/30 backdrop-blur-sm border border-muted/50 rounded-full px-3 py-1">
+                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Coming Soon</span>
+              </div>
+
+              {/* Game Badge */}
+              <div className="mb-4">
+                <span className="inline-block bg-muted/20 text-muted-foreground px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
+                  {tournament.game}
+                </span>
+              </div>
+
+              <h3 className="text-2xl font-black mb-4 text-muted-foreground">
+                {tournament.title}
+              </h3>
+
+              <div className="space-y-3 mb-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-muted-foreground/60">
+                    <Trophy className="h-4 w-4" />
+                    <span className="text-sm">Prize Pool</span>
+                  </div>
+                  <span className="font-bold text-muted-foreground">{tournament.prize}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-muted-foreground/60">
+                    <Calendar className="h-4 w-4" />
+                    <span className="text-sm">Date</span>
+                  </div>
+                  <span className="font-bold text-muted-foreground">{tournament.date}</span>
+                </div>
+              </div>
+
+              <Button 
+                className="w-full"
+                size="lg"
+                disabled
+                variant="outline"
+              >
+                Stay Tuned
+              </Button>
+            </motion.div>
+          ))}
         </div>
       </div>
     </section>
