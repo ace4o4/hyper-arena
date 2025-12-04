@@ -20,7 +20,7 @@ export const Hero = () => {
 
   return (
     <section ref={containerRef} className="relative min-h-screen flex items-center justify-center overflow-hidden">
-      {/* Multi-layer Parallax Background */}
+      {/* Multi-layer Parallax Background with blur */}
       <motion.div 
         style={{ y: bgY }}
         className="absolute inset-0 z-0 gpu-accelerated"
@@ -31,10 +31,13 @@ export const Hero = () => {
             backgroundImage: `url(${heroBg})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
+            filter: 'blur(4px)',
           }}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-background/90 via-background/50 to-background" />
-        <div className="absolute inset-0 bg-gradient-to-r from-cyber-purple/20 via-transparent to-neon-cyan/20" />
+        <div className="absolute inset-0 bg-gradient-to-b from-background/70 via-background/40 to-background" />
+        <div className="absolute inset-0 bg-gradient-to-r from-cyber-purple/30 via-transparent to-neon-cyan/30" />
+        {/* Enhanced blur overlay for visibility */}
+        <div className="absolute inset-0 backdrop-blur-[2px]" />
       </motion.div>
 
       {/* Animated grid overlay */}
@@ -69,14 +72,25 @@ export const Hero = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
         >
-          {/* GLITCH HEADLINE - Top position */}
+          {/* GLITCH HEADLINE - Top position with enhanced visibility */}
           <motion.h1 
-            className="text-5xl md:text-7xl lg:text-8xl font-black mb-8 relative"
+            className="text-5xl md:text-7xl lg:text-8xl font-black mb-8 relative drop-shadow-[0_0_30px_rgba(0,255,157,0.5)]"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8 }}
           >
-            <span className="glitch-text text-gradient-primary" data-text="DOMINATE THE ARENA">
+            <span 
+              className="glitch-text relative inline-block"
+              data-text="DOMINATE THE ARENA"
+              style={{
+                background: 'linear-gradient(135deg, hsl(var(--toxic-green)) 0%, hsl(var(--neon-cyan)) 50%, hsl(var(--cyber-purple)) 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                textShadow: '0 0 60px hsl(var(--toxic-green) / 0.8), 0 0 100px hsl(var(--toxic-green) / 0.4)',
+                filter: 'drop-shadow(0 0 20px hsl(var(--toxic-green) / 0.5))',
+              }}
+            >
               DOMINATE THE ARENA
             </span>
           </motion.h1>
