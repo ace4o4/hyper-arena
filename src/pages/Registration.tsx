@@ -1,16 +1,32 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Gamepad2, Users, CreditCard, Trophy, ArrowRight, Check, Phone, Mail, User, Hash, Shield, Crown, UserPlus } from "lucide-react";
+import { Gamepad2, Users, CreditCard, Trophy, ArrowRight, Check, Phone, Mail, User, Hash, Shield, Crown, UserPlus, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { ParticleBackground } from "@/components/ParticleBackground";
+import { Background3D } from "@/components/Background3D";
 import { Navbar } from "@/components/Navbar";
+import { z } from "zod";
 
 type Step = "game" | "mode" | "details" | "payment" | "success";
+
+// Validation schemas
+const playerSchema = z.object({
+  ign: z.string().min(2, "IGN must be at least 2 characters").max(30, "IGN must be less than 30 characters"),
+  uid: z.string().min(5, "UID must be at least 5 digits").max(20, "UID must be less than 20 digits").regex(/^\d+$/, "UID must contain only numbers"),
+  email: z.string().email("Please enter a valid email address"),
+});
+
+const teamSchema = z.object({
+  teamName: z.string().min(3, "Team name must be at least 3 characters").max(30, "Team name must be less than 30 characters"),
+  leaderPhone: z.string().min(10, "Phone number must be at least 10 digits").max(15, "Phone number must be less than 15 digits").regex(/^[\d+\s-]+$/, "Invalid phone number format"),
+  leaderEmail: z.string().email("Please enter a valid email address"),
+  leaderIGN: z.string().min(2, "IGN must be at least 2 characters").max(30, "IGN must be less than 30 characters"),
+  leaderUID: z.string().min(5, "UID must be at least 5 digits").max(20, "UID must be less than 20 digits").regex(/^\d+$/, "UID must contain only numbers"),
+});
 
 interface PlayerDetails {
   ign: string;
@@ -18,11 +34,21 @@ interface PlayerDetails {
   email: string;
 }
 
+interface FormErrors {
+  teamName?: string;
+  leaderPhone?: string;
+  leaderEmail?: string;
+  leaderIGN?: string;
+  leaderUID?: string;
+  players?: { [key: number]: { ign?: string; uid?: string; email?: string } };
+}
+
 export default function Registration() {
   const [step, setStep] = useState<Step>("game");
   const [selectedGame, setSelectedGame] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [errors, setErrors] = useState<FormErrors>({});
 
   // Team details
   const [teamName, setTeamName] = useState("");
@@ -44,9 +70,70 @@ export default function Registration() {
     const updated = [...players];
     updated[index][field] = value;
     setPlayers(updated);
+    
+    // Clear error for this field
+    if (errors.players?.[index]?.[field]) {
+      const newErrors = { ...errors };
+      if (newErrors.players?.[index]) {
+        delete newErrors.players[index][field];
+      }
+      setErrors(newErrors);
+    }
+  };
+
+  const validateForm = (): boolean => {
+    const newErrors: FormErrors = {};
+    let isValid = true;
+
+    // Validate team details
+    const teamResult = teamSchema.safeParse({
+      teamName,
+      leaderPhone,
+      leaderEmail,
+      leaderIGN,
+      leaderUID,
+    });
+
+    if (!teamResult.success) {
+      isValid = false;
+      teamResult.error.errors.forEach((err) => {
+        const field = err.path[0] as keyof FormErrors;
+        newErrors[field] = err.message;
+      });
+    }
+
+    // Validate players
+    const playerErrors: { [key: number]: { ign?: string; uid?: string; email?: string } } = {};
+    players.forEach((player, index) => {
+      const playerResult = playerSchema.safeParse(player);
+      if (!playerResult.success) {
+        isValid = false;
+        playerErrors[index] = {};
+        playerResult.error.errors.forEach((err) => {
+          const field = err.path[0] as keyof PlayerDetails;
+          playerErrors[index][field] = err.message;
+        });
+      }
+    });
+
+    if (Object.keys(playerErrors).length > 0) {
+      newErrors.players = playerErrors;
+    }
+
+    setErrors(newErrors);
+    return isValid;
   };
 
   const handleSubmit = () => {
+    if (!validateForm()) {
+      toast({
+        title: "Validation Error",
+        description: "Please fix the errors in the form before submitting.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setStep("success");
     setTimeout(() => {
       toast({
@@ -57,12 +144,33 @@ export default function Registration() {
     }, 2000);
   };
 
+  const clearFieldError = (field: keyof FormErrors) => {
+    if (errors[field]) {
+      const newErrors = { ...errors };
+      delete newErrors[field];
+      setErrors(newErrors);
+    }
+  };
+
   const playerLabels = ["Player 2", "Player 3", "Player 4", "Player 5"];
-  const playerIcons = [User, User, User, User];
+
+  const ErrorMessage = ({ message }: { message?: string }) => {
+    if (!message) return null;
+    return (
+      <motion.p 
+        initial={{ opacity: 0, y: -5 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="text-neon-red text-xs mt-1 flex items-center gap-1"
+      >
+        <AlertCircle className="h-3 w-3" />
+        {message}
+      </motion.p>
+    );
+  };
 
   return (
     <div className="min-h-screen relative">
-      <ParticleBackground />
+      <Background3D />
       <Navbar />
       <div className="pt-24 pb-12 px-4 hexagon-pattern flex items-center justify-center min-h-screen">
       <motion.div
@@ -239,7 +347,7 @@ export default function Registration() {
               </motion.div>
             )}
 
-            {/* Step 3: Player Details */}
+            {/* Step 3: Player Details with Validation */}
             {step === "details" && (
               <motion.div
                 key="details"
@@ -261,10 +369,14 @@ export default function Registration() {
                       <Label className="text-foreground mb-2 block">Team Name *</Label>
                       <Input
                         value={teamName}
-                        onChange={(e) => setTeamName(e.target.value)}
+                        onChange={(e) => {
+                          setTeamName(e.target.value);
+                          clearFieldError('teamName');
+                        }}
                         placeholder="Enter team name"
-                        className="glass border-border/30 focus:border-toxic-green"
+                        className={`glass border-border/30 focus:border-toxic-green ${errors.teamName ? 'border-neon-red' : ''}`}
                       />
+                      <ErrorMessage message={errors.teamName} />
                     </div>
                   </div>
                 </div>
@@ -281,10 +393,14 @@ export default function Registration() {
                       </Label>
                       <Input
                         value={leaderIGN}
-                        onChange={(e) => setLeaderIGN(e.target.value)}
+                        onChange={(e) => {
+                          setLeaderIGN(e.target.value);
+                          clearFieldError('leaderIGN');
+                        }}
                         placeholder="Your IGN"
-                        className="glass border-border/30 focus:border-toxic-green"
+                        className={`glass border-border/30 focus:border-toxic-green ${errors.leaderIGN ? 'border-neon-red' : ''}`}
                       />
+                      <ErrorMessage message={errors.leaderIGN} />
                     </div>
                     <div>
                       <Label className="text-foreground mb-2 flex items-center gap-2">
@@ -292,11 +408,14 @@ export default function Registration() {
                       </Label>
                       <Input
                         value={leaderUID}
-                        onChange={(e) => setLeaderUID(e.target.value)}
-                        type="number"
+                        onChange={(e) => {
+                          setLeaderUID(e.target.value);
+                          clearFieldError('leaderUID');
+                        }}
                         placeholder="Your game UID"
-                        className="glass border-border/30 focus:border-toxic-green"
+                        className={`glass border-border/30 focus:border-toxic-green ${errors.leaderUID ? 'border-neon-red' : ''}`}
                       />
+                      <ErrorMessage message={errors.leaderUID} />
                     </div>
                     <div>
                       <Label className="text-foreground mb-2 flex items-center gap-2">
@@ -304,11 +423,15 @@ export default function Registration() {
                       </Label>
                       <Input
                         value={leaderPhone}
-                        onChange={(e) => setLeaderPhone(e.target.value)}
+                        onChange={(e) => {
+                          setLeaderPhone(e.target.value);
+                          clearFieldError('leaderPhone');
+                        }}
                         type="tel"
                         placeholder="+91 XXXXX XXXXX"
-                        className="glass border-border/30 focus:border-toxic-green"
+                        className={`glass border-border/30 focus:border-toxic-green ${errors.leaderPhone ? 'border-neon-red' : ''}`}
                       />
+                      <ErrorMessage message={errors.leaderPhone} />
                     </div>
                     <div>
                       <Label className="text-foreground mb-2 flex items-center gap-2">
@@ -316,11 +439,15 @@ export default function Registration() {
                       </Label>
                       <Input
                         value={leaderEmail}
-                        onChange={(e) => setLeaderEmail(e.target.value)}
+                        onChange={(e) => {
+                          setLeaderEmail(e.target.value);
+                          clearFieldError('leaderEmail');
+                        }}
                         type="email"
                         placeholder="leader@email.com"
-                        className="glass border-border/30 focus:border-toxic-green"
+                        className={`glass border-border/30 focus:border-toxic-green ${errors.leaderEmail ? 'border-neon-red' : ''}`}
                       />
+                      <ErrorMessage message={errors.leaderEmail} />
                     </div>
                   </div>
                 </div>
@@ -340,8 +467,9 @@ export default function Registration() {
                           value={player.ign}
                           onChange={(e) => updatePlayer(idx, "ign", e.target.value)}
                           placeholder="Player IGN"
-                          className="glass border-border/30 focus:border-cyber-purple"
+                          className={`glass border-border/30 focus:border-cyber-purple ${errors.players?.[idx]?.ign ? 'border-neon-red' : ''}`}
                         />
+                        <ErrorMessage message={errors.players?.[idx]?.ign} />
                       </div>
                       <div>
                         <Label className="text-foreground mb-2 flex items-center gap-2">
@@ -350,10 +478,10 @@ export default function Registration() {
                         <Input
                           value={player.uid}
                           onChange={(e) => updatePlayer(idx, "uid", e.target.value)}
-                          type="number"
                           placeholder="Player UID"
-                          className="glass border-border/30 focus:border-cyber-purple"
+                          className={`glass border-border/30 focus:border-cyber-purple ${errors.players?.[idx]?.uid ? 'border-neon-red' : ''}`}
                         />
+                        <ErrorMessage message={errors.players?.[idx]?.uid} />
                       </div>
                       <div>
                         <Label className="text-foreground mb-2 flex items-center gap-2">
@@ -364,8 +492,9 @@ export default function Registration() {
                           onChange={(e) => updatePlayer(idx, "email", e.target.value)}
                           type="email"
                           placeholder="player@email.com"
-                          className="glass border-border/30 focus:border-cyber-purple"
+                          className={`glass border-border/30 focus:border-cyber-purple ${errors.players?.[idx]?.email ? 'border-neon-red' : ''}`}
                         />
+                        <ErrorMessage message={errors.players?.[idx]?.email} />
                       </div>
                     </div>
                   </div>
@@ -395,7 +524,6 @@ export default function Registration() {
                       <Input
                         value={substitute.uid}
                         onChange={(e) => setSubstitute({ ...substitute, uid: e.target.value })}
-                        type="number"
                         placeholder="Substitute UID"
                         className="glass border-border/30 focus:border-neon-red"
                       />
@@ -408,7 +536,7 @@ export default function Registration() {
                         value={substitute.email}
                         onChange={(e) => setSubstitute({ ...substitute, email: e.target.value })}
                         type="email"
-                        placeholder="sub@email.com"
+                        placeholder="substitute@email.com"
                         className="glass border-border/30 focus:border-neon-red"
                       />
                     </div>
@@ -424,7 +552,17 @@ export default function Registration() {
                     Back
                   </Button>
                   <Button
-                    onClick={() => setStep("payment")}
+                    onClick={() => {
+                      if (validateForm()) {
+                        setStep("payment");
+                      } else {
+                        toast({
+                          title: "Validation Error",
+                          description: "Please fix the errors before continuing.",
+                          variant: "destructive",
+                        });
+                      }
+                    }}
                     className="flex-1 bg-toxic-green hover:bg-toxic-green/90 text-void-black font-bold"
                   >
                     Continue <ArrowRight className="ml-2 h-5 w-5" />
@@ -442,56 +580,68 @@ export default function Registration() {
                 exit={{ opacity: 0, x: -50 }}
               >
                 <h2 className="text-3xl font-black mb-2 text-gradient-primary">Payment</h2>
-                <p className="text-muted-foreground mb-8">Complete your squad entry</p>
+                <p className="text-muted-foreground mb-8">Complete payment to confirm registration</p>
 
                 <div className="glass rounded-xl p-6 mb-6 border border-toxic-green/30">
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="text-muted-foreground">Entry Fee (per squad)</span>
-                    <span className="text-2xl font-black text-toxic-green">₹500</span>
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <div className="text-lg font-bold">Tournament Entry Fee</div>
+                      <div className="text-sm text-muted-foreground">{selectedGame} - Squad Mode</div>
+                    </div>
+                    <div className="text-3xl font-black text-toxic-green">₹299</div>
                   </div>
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="text-muted-foreground">Tournament Prize Pool</span>
-                    <span className="text-xl font-bold text-neon-cyan">₹50,000</span>
+
+                  <div className="space-y-4">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Team: {teamName}</span>
+                      <span>{players.length + 1} Players</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Leader: {leaderIGN}</span>
+                    </div>
                   </div>
-                  <div className="border-t border-border/30 pt-4">
-                    <div className="text-sm text-muted-foreground">
-                      <p>• QR Tickets will be sent to all registered email IDs</p>
-                      <p>• Team Leader can share tickets from dashboard</p>
+
+                  <div className="mt-6 pt-6 border-t border-border/20">
+                    <div className="grid grid-cols-2 gap-4">
+                      <motion.div
+                        whileHover={{ scale: 1.02 }}
+                        className="glass rounded-xl p-4 cursor-pointer border-2 border-toxic-green text-center"
+                      >
+                        <CreditCard className="h-8 w-8 text-toxic-green mx-auto mb-2" />
+                        <div className="font-bold">UPI Payment</div>
+                        <div className="text-xs text-muted-foreground">Google Pay, PhonePe, etc.</div>
+                      </motion.div>
+                      <motion.div
+                        whileHover={{ scale: 1.02 }}
+                        className="glass rounded-xl p-4 cursor-pointer border border-border/20 text-center"
+                      >
+                        <Trophy className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                        <div className="font-bold">Screenshot</div>
+                        <div className="text-xs text-muted-foreground">Upload payment proof</div>
+                      </motion.div>
                     </div>
                   </div>
                 </div>
 
-                <div className="space-y-4">
+                <div className="flex gap-4">
                   <Button
-                    onClick={handleSubmit}
-                    className="w-full bg-toxic-green hover:bg-toxic-green/90 text-void-black font-bold uppercase tracking-wider"
-                    size="lg"
-                  >
-                    <CreditCard className="mr-2 h-5 w-5" />
-                    Pay with UPI
-                  </Button>
-
-                  <Button
-                    onClick={handleSubmit}
+                    onClick={() => setStep("details")}
                     variant="outline"
-                    className="w-full"
-                    size="lg"
+                    className="flex-1"
                   >
-                    Upload Payment Screenshot
+                    Back
+                  </Button>
+                  <Button
+                    onClick={handleSubmit}
+                    className="flex-1 bg-toxic-green hover:bg-toxic-green/90 text-void-black font-bold"
+                  >
+                    Complete Registration
                   </Button>
                 </div>
-
-                <Button
-                  onClick={() => setStep("details")}
-                  variant="ghost"
-                  className="w-full mt-4"
-                >
-                  Back
-                </Button>
               </motion.div>
             )}
 
-            {/* Success */}
+            {/* Step 5: Success */}
             {step === "success" && (
               <motion.div
                 key="success"
@@ -500,19 +650,30 @@ export default function Registration() {
                 className="text-center py-12"
               >
                 <motion.div
-                  animate={{ rotate: 360, scale: [1, 1.2, 1] }}
-                  transition={{ duration: 0.6 }}
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", bounce: 0.5 }}
+                  className="h-24 w-24 rounded-full bg-toxic-green/20 border-2 border-toxic-green flex items-center justify-center mx-auto mb-6"
                 >
-                  <Trophy className="h-24 w-24 text-toxic-green mx-auto mb-6" />
+                  <Check className="h-12 w-12 text-toxic-green" />
                 </motion.div>
-                <h2 className="text-4xl font-black mb-4 text-gradient-primary">Squad Registered!</h2>
-                <p className="text-xl text-muted-foreground">QR tickets sent to all players. Good luck!</p>
+                <h2 className="text-3xl font-black mb-4 text-gradient-primary">Registration Complete!</h2>
+                <p className="text-muted-foreground mb-8">
+                  Your squad has been registered for the tournament.
+                  <br />Check your email for QR tickets.
+                </p>
+                <motion.div
+                  animate={{ scale: [1, 1.05, 1] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                >
+                  <Trophy className="h-16 w-16 text-toxic-green mx-auto" />
+                </motion.div>
               </motion.div>
             )}
           </AnimatePresence>
         </Card>
       </motion.div>
-      </div>
+    </div>
     </div>
   );
 }

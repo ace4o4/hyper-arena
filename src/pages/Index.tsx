@@ -1,7 +1,6 @@
 import { lazy, Suspense } from "react";
 import { Hero } from "@/components/Hero";
 import { GameSelector } from "@/components/GameSelector";
-import { LiveTicker } from "@/components/LiveTicker";
 import { Footer } from "@/components/Footer";
 import { Navbar } from "@/components/Navbar";
 import { Background3D } from "@/components/Background3D";
@@ -78,7 +77,6 @@ const Index = () => {
       <Suspense fallback={<TournamentGridSkeleton />}>
         <TournamentBracket />
       </Suspense>
-      <LiveTicker />
       <Footer />
     </div>
   );
