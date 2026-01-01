@@ -16,7 +16,7 @@ const teams = [
 export const PointsTable = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [hoveredRow, setHoveredRow] = useState<number | null>(null);
-  
+
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ["start end", "end start"]
@@ -39,9 +39,9 @@ export const PointsTable = () => {
   };
 
   return (
-    <section ref={containerRef} className="relative py-24 overflow-hidden">
+    <section id="leaderboard" ref={containerRef} className="relative py-24 overflow-hidden">
       {/* Parallax background elements */}
-      <motion.div 
+      <motion.div
         style={{ y: backgroundY }}
         className="absolute inset-0 pointer-events-none"
       >
@@ -59,7 +59,7 @@ export const PointsTable = () => {
       }} />
 
       <div className="container mx-auto px-4 relative z-10">
-        <motion.div 
+        <motion.div
           style={{ y }}
           className="text-center mb-12"
         >
@@ -72,7 +72,7 @@ export const PointsTable = () => {
             <Target className="w-4 h-4 text-neon-cyan" />
             <span className="text-sm font-medium text-neon-cyan">LIVE RANKINGS</span>
           </motion.div>
-          
+
           <h2 className="text-5xl md:text-6xl font-black mb-4">
             <span className="text-gradient-cyber">POINTS TABLE</span>
           </h2>
@@ -82,7 +82,7 @@ export const PointsTable = () => {
         </motion.div>
 
         {/* Stats Overview */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -139,9 +139,8 @@ export const PointsTable = () => {
                 transition={{ delay: idx * 0.05 }}
                 onMouseEnter={() => setHoveredRow(team.rank)}
                 onMouseLeave={() => setHoveredRow(null)}
-                className={`relative grid grid-cols-12 gap-4 p-4 items-center transition-all duration-300 cursor-pointer ${getRankStyle(team.rank)} ${
-                  hoveredRow === team.rank ? "bg-white/5" : ""
-                }`}
+                className={`relative grid grid-cols-12 gap-4 p-4 items-center transition-all duration-300 cursor-pointer ${getRankStyle(team.rank)} ${hoveredRow === team.rank ? "bg-white/5" : ""
+                  }`}
               >
                 {/* Hologram highlight on hover */}
                 {hoveredRow === team.rank && (
@@ -156,12 +155,11 @@ export const PointsTable = () => {
 
                 {/* Rank */}
                 <div className="col-span-1 text-center relative z-10">
-                  <div className={`inline-flex items-center justify-center w-8 h-8 rounded-lg font-black ${
-                    team.rank === 1 ? "bg-yellow-500/20 text-yellow-500" :
-                    team.rank === 2 ? "bg-gray-400/20 text-gray-400" :
-                    team.rank === 3 ? "bg-amber-600/20 text-amber-600" :
-                    "bg-muted/20 text-muted-foreground"
-                  }`}>
+                  <div className={`inline-flex items-center justify-center w-8 h-8 rounded-lg font-black ${team.rank === 1 ? "bg-yellow-500/20 text-yellow-500" :
+                      team.rank === 2 ? "bg-gray-400/20 text-gray-400" :
+                        team.rank === 3 ? "bg-amber-600/20 text-amber-600" :
+                          "bg-muted/20 text-muted-foreground"
+                    }`}>
                     {team.rank}
                   </div>
                 </div>
@@ -208,10 +206,9 @@ export const PointsTable = () => {
 
                 {/* Points */}
                 <div className="col-span-3 md:col-span-2 text-center relative z-10">
-                  <motion.span 
-                    className={`text-xl font-black ${
-                      team.rank <= 3 ? "text-gradient-primary" : "text-foreground"
-                    }`}
+                  <motion.span
+                    className={`text-xl font-black ${team.rank <= 3 ? "text-gradient-primary" : "text-foreground"
+                      }`}
                     animate={hoveredRow === team.rank ? { scale: [1, 1.1, 1] } : {}}
                     transition={{ duration: 0.3 }}
                   >

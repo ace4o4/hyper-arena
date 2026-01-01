@@ -4,14 +4,14 @@ import { motion, useScroll, useTransform } from "framer-motion";
 export const Background3D = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll();
-  
+
   const rotate1 = useTransform(scrollYProgress, [0, 1], [0, 180]);
   const rotate2 = useTransform(scrollYProgress, [0, 1], [180, 0]);
 
   return (
     <div ref={containerRef} className="fixed inset-0 pointer-events-none overflow-hidden z-0">
       {/* Deep space gradient base */}
-      <div 
+      <div
         className="absolute inset-0"
         style={{
           background: `
@@ -28,7 +28,7 @@ export const Background3D = () => {
         style={{ rotateZ: rotate1 }}
         className="absolute -top-1/4 -left-1/4 w-[600px] h-[600px] rounded-full opacity-30"
       >
-        <div 
+        <div
           className="w-full h-full rounded-full"
           style={{
             background: `radial-gradient(circle at 30% 30%, hsl(var(--cyber-purple) / 0.6), transparent 60%)`,
@@ -41,7 +41,7 @@ export const Background3D = () => {
         style={{ rotateZ: rotate2 }}
         className="absolute -bottom-1/4 -right-1/4 w-[700px] h-[700px] rounded-full opacity-25"
       >
-        <div 
+        <div
           className="w-full h-full rounded-full"
           style={{
             background: `radial-gradient(circle at 70% 30%, hsl(var(--neon-cyan) / 0.5), transparent 60%)`,
@@ -50,8 +50,8 @@ export const Background3D = () => {
         />
       </motion.div>
 
-      {/* 3D Grid floor effect */}
-      <div 
+      {/* 3D Grid floor effect - Optimized */}
+      <div
         className="absolute bottom-0 left-0 right-0 h-[50vh] opacity-20"
         style={{
           perspective: '500px',
@@ -59,7 +59,7 @@ export const Background3D = () => {
         }}
       >
         <motion.div
-          className="absolute inset-0"
+          className="absolute -inset-[100px]"
           style={{
             transform: 'rotateX(60deg)',
             transformOrigin: 'top',
@@ -72,7 +72,7 @@ export const Background3D = () => {
             WebkitMaskImage: 'linear-gradient(to top, black 0%, transparent 100%)',
           }}
           animate={{
-            backgroundPosition: ['0px 0px', '0px 60px'],
+            y: [0, 60],
           }}
           transition={{
             duration: 3,
@@ -86,7 +86,7 @@ export const Background3D = () => {
       <div className="absolute inset-0 scan-line opacity-10" />
 
       {/* Vignette effect */}
-      <div 
+      <div
         className="absolute inset-0 pointer-events-none"
         style={{
           background: 'radial-gradient(ellipse at center, transparent 0%, hsl(var(--background) / 0.5) 80%, hsl(var(--background) / 0.9) 100%)',

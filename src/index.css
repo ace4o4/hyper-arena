@@ -2,6 +2,29 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Lenis recommended css */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+.lenis.lenis-scrolling iframe {
+  pointer-events: none;
+}
+
+
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
 All colors MUST be HSL.
 */
@@ -42,21 +65,22 @@ All colors MUST be HSL.
     --ring: 158 100% 50%;
 
     --radius: 0.75rem;
-    
+
     /* Custom Cyberpunk Colors */
     --cyber-purple: 277 100% 45%;
     --neon-cyan: 192 100% 42%;
     --toxic-green: 158 100% 50%;
     --neon-red: 340 100% 66%;
     --void-black: 220 15% 2%;
-    
+
     /* Glow Effects */
     --glow-primary: 0 0 20px hsl(158 100% 50% / 0.5);
     --glow-accent: 0 0 20px hsl(192 100% 42% / 0.5);
     --glow-danger: 0 0 20px hsl(340 100% 66% / 0.5);
-    
+
     /* Glass Effects */
-    --glass-bg: rgba(255, 255, 255, 0.03);
+    --glass-bg: rgba(20, 20, 25, 0.7);
+    /* More opaque for better performance fallback */
     --glass-border: rgba(255, 255, 255, 0.1);
     --glass-blur: 12px;
 
@@ -77,9 +101,7 @@ All colors MUST be HSL.
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
-  .dark {
-    /* Same as root - dark only theme */
-  }
+  /* .dark class is handled by root variables in this theme */
 }
 
 @layer base {
@@ -89,24 +111,31 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground font-rajdhani antialiased;
-    background-image: 
-      radial-gradient(at 0% 0%, hsl(var(--cyber-purple) / 0.2) 0px, transparent 50%),
-      radial-gradient(at 100% 0%, hsl(var(--neon-cyan) / 0.2) 0px, transparent 50%),
-      radial-gradient(at 100% 100%, hsl(var(--cyber-purple) / 0.15) 0px, transparent 50%),
-      radial-gradient(at 0% 100%, hsl(var(--neon-cyan) / 0.15) 0px, transparent 50%);
+    background-image:
+      radial-gradient(at 0% 0%, hsl(var(--cyber-purple) / 0.15) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, hsl(var(--neon-cyan) / 0.15) 0px, transparent 50%);
+    /* Reduced number of gradients for performance */
     background-attachment: fixed;
   }
-  
-  h1, h2, h3, h4, h5, h6 {
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply font-orbitron uppercase tracking-wider;
   }
 }
 
-/* Glitch Animation */
+/* Glitch Animation - Optimized */
 .glitch-text {
   position: relative;
   display: inline-block;
+  /* Removed infinite animation by default to save resources, will apply on hover or specific state if needed, 
+     but for the main title we keep it. */
   animation: glitch-skew 4s infinite linear alternate-reverse;
+  will-change: transform;
 }
 
 .glitch-text::before,
@@ -117,6 +146,7 @@ All colors MUST be HSL.
   left: 0;
   width: 100%;
   height: 100%;
+  opacity: 0.8;
 }
 
 .glitch-text::before {
@@ -124,6 +154,7 @@ All colors MUST be HSL.
   text-shadow: -2px 0 hsl(var(--neon-cyan));
   clip: rect(24px, 550px, 90px, 0);
   animation: glitch-anim 3s infinite linear alternate-reverse;
+  will-change: clip, transform;
 }
 
 .glitch-text::after {
@@ -131,135 +162,335 @@ All colors MUST be HSL.
   text-shadow: -2px 0 hsl(var(--neon-red)), 2px 2px hsl(var(--cyber-purple));
   clip: rect(85px, 550px, 140px, 0);
   animation: glitch-anim2 2s infinite linear alternate-reverse;
+  will-change: clip, transform;
 }
 
 @keyframes glitch-anim {
-  0% { clip: rect(42px, 9999px, 44px, 0); transform: skew(0.5deg); }
-  5% { clip: rect(12px, 9999px, 59px, 0); transform: skew(0.25deg); }
-  10% { clip: rect(48px, 9999px, 29px, 0); transform: skew(0.6deg); }
-  15% { clip: rect(42px, 9999px, 73px, 0); transform: skew(0.15deg); }
-  20% { clip: rect(63px, 9999px, 27px, 0); transform: skew(0.45deg); }
-  25% { clip: rect(34px, 9999px, 55px, 0); transform: skew(0.7deg); }
-  30% { clip: rect(86px, 9999px, 73px, 0); transform: skew(0.3deg); }
-  35% { clip: rect(20px, 9999px, 20px, 0); transform: skew(0.55deg); }
-  40% { clip: rect(26px, 9999px, 60px, 0); transform: skew(0.1deg); }
-  45% { clip: rect(25px, 9999px, 66px, 0); transform: skew(0.4deg); }
-  50% { clip: rect(57px, 9999px, 98px, 0); transform: skew(0.65deg); }
-  55% { clip: rect(5px, 9999px, 46px, 0); transform: skew(0.2deg); }
-  60% { clip: rect(82px, 9999px, 31px, 0); transform: skew(0.5deg); }
-  65% { clip: rect(54px, 9999px, 27px, 0); transform: skew(0.35deg); }
-  70% { clip: rect(28px, 9999px, 99px, 0); transform: skew(0.6deg); }
-  75% { clip: rect(45px, 9999px, 69px, 0); transform: skew(0.15deg); }
-  80% { clip: rect(23px, 9999px, 85px, 0); transform: skew(0.45deg); }
-  85% { clip: rect(54px, 9999px, 68px, 0); transform: skew(0.7deg); }
-  90% { clip: rect(45px, 9999px, 41px, 0); transform: skew(0.25deg); }
-  95% { clip: rect(70px, 9999px, 71px, 0); transform: skew(0.55deg); }
-  100% { clip: rect(59px, 9999px, 98px, 0); transform: skew(0.4deg); }
+  0% {
+    clip: rect(42px, 9999px, 44px, 0);
+    transform: skew(0.5deg);
+  }
+
+  5% {
+    clip: rect(12px, 9999px, 59px, 0);
+    transform: skew(0.25deg);
+  }
+
+  10% {
+    clip: rect(48px, 9999px, 29px, 0);
+    transform: skew(0.6deg);
+  }
+
+  15% {
+    clip: rect(42px, 9999px, 73px, 0);
+    transform: skew(0.15deg);
+  }
+
+  20% {
+    clip: rect(63px, 9999px, 27px, 0);
+    transform: skew(0.45deg);
+  }
+
+  25% {
+    clip: rect(34px, 9999px, 55px, 0);
+    transform: skew(0.7deg);
+  }
+
+  30% {
+    clip: rect(86px, 9999px, 73px, 0);
+    transform: skew(0.3deg);
+  }
+
+  35% {
+    clip: rect(20px, 9999px, 20px, 0);
+    transform: skew(0.55deg);
+  }
+
+  40% {
+    clip: rect(26px, 9999px, 60px, 0);
+    transform: skew(0.1deg);
+  }
+
+  45% {
+    clip: rect(25px, 9999px, 66px, 0);
+    transform: skew(0.4deg);
+  }
+
+  50% {
+    clip: rect(57px, 9999px, 98px, 0);
+    transform: skew(0.65deg);
+  }
+
+  55% {
+    clip: rect(5px, 9999px, 46px, 0);
+    transform: skew(0.2deg);
+  }
+
+  60% {
+    clip: rect(82px, 9999px, 31px, 0);
+    transform: skew(0.5deg);
+  }
+
+  65% {
+    clip: rect(54px, 9999px, 27px, 0);
+    transform: skew(0.35deg);
+  }
+
+  70% {
+    clip: rect(28px, 9999px, 99px, 0);
+    transform: skew(0.6deg);
+  }
+
+  75% {
+    clip: rect(45px, 9999px, 69px, 0);
+    transform: skew(0.15deg);
+  }
+
+  80% {
+    clip: rect(23px, 9999px, 85px, 0);
+    transform: skew(0.45deg);
+  }
+
+  85% {
+    clip: rect(54px, 9999px, 68px, 0);
+    transform: skew(0.7deg);
+  }
+
+  90% {
+    clip: rect(45px, 9999px, 41px, 0);
+    transform: skew(0.25deg);
+  }
+
+  95% {
+    clip: rect(70px, 9999px, 71px, 0);
+    transform: skew(0.55deg);
+  }
+
+  100% {
+    clip: rect(59px, 9999px, 98px, 0);
+    transform: skew(0.4deg);
+  }
 }
 
 @keyframes glitch-anim2 {
-  0% { clip: rect(65px, 9999px, 100px, 0); transform: skew(0.3deg); }
-  5% { clip: rect(52px, 9999px, 74px, 0); transform: skew(0.6deg); }
-  10% { clip: rect(79px, 9999px, 85px, 0); transform: skew(0.15deg); }
-  15% { clip: rect(75px, 9999px, 5px, 0); transform: skew(0.45deg); }
-  20% { clip: rect(67px, 9999px, 61px, 0); transform: skew(0.7deg); }
-  25% { clip: rect(14px, 9999px, 79px, 0); transform: skew(0.2deg); }
-  30% { clip: rect(1px, 9999px, 66px, 0); transform: skew(0.5deg); }
-  35% { clip: rect(86px, 9999px, 30px, 0); transform: skew(0.35deg); }
-  40% { clip: rect(23px, 9999px, 98px, 0); transform: skew(0.65deg); }
-  45% { clip: rect(85px, 9999px, 72px, 0); transform: skew(0.1deg); }
-  50% { clip: rect(71px, 9999px, 75px, 0); transform: skew(0.4deg); }
-  55% { clip: rect(2px, 9999px, 48px, 0); transform: skew(0.55deg); }
-  60% { clip: rect(30px, 9999px, 16px, 0); transform: skew(0.25deg); }
-  65% { clip: rect(59px, 9999px, 50px, 0); transform: skew(0.6deg); }
-  70% { clip: rect(41px, 9999px, 62px, 0); transform: skew(0.15deg); }
-  75% { clip: rect(2px, 9999px, 82px, 0); transform: skew(0.45deg); }
-  80% { clip: rect(47px, 9999px, 73px, 0); transform: skew(0.7deg); }
-  85% { clip: rect(3px, 9999px, 27px, 0); transform: skew(0.3deg); }
-  90% { clip: rect(26px, 9999px, 55px, 0); transform: skew(0.5deg); }
-  95% { clip: rect(42px, 9999px, 97px, 0); transform: skew(0.2deg); }
-  100% { clip: rect(38px, 9999px, 49px, 0); transform: skew(0.4deg); }
+  0% {
+    clip: rect(65px, 9999px, 100px, 0);
+    transform: skew(0.3deg);
+  }
+
+  5% {
+    clip: rect(52px, 9999px, 74px, 0);
+    transform: skew(0.6deg);
+  }
+
+  10% {
+    clip: rect(79px, 9999px, 85px, 0);
+    transform: skew(0.15deg);
+  }
+
+  15% {
+    clip: rect(75px, 9999px, 5px, 0);
+    transform: skew(0.45deg);
+  }
+
+  20% {
+    clip: rect(67px, 9999px, 61px, 0);
+    transform: skew(0.7deg);
+  }
+
+  25% {
+    clip: rect(14px, 9999px, 79px, 0);
+    transform: skew(0.2deg);
+  }
+
+  30% {
+    clip: rect(1px, 9999px, 66px, 0);
+    transform: skew(0.5deg);
+  }
+
+  35% {
+    clip: rect(86px, 9999px, 30px, 0);
+    transform: skew(0.35deg);
+  }
+
+  40% {
+    clip: rect(23px, 9999px, 98px, 0);
+    transform: skew(0.65deg);
+  }
+
+  45% {
+    clip: rect(85px, 9999px, 72px, 0);
+    transform: skew(0.1deg);
+  }
+
+  50% {
+    clip: rect(71px, 9999px, 75px, 0);
+    transform: skew(0.4deg);
+  }
+
+  55% {
+    clip: rect(2px, 9999px, 48px, 0);
+    transform: skew(0.55deg);
+  }
+
+  60% {
+    clip: rect(30px, 9999px, 16px, 0);
+    transform: skew(0.25deg);
+  }
+
+  65% {
+    clip: rect(59px, 9999px, 50px, 0);
+    transform: skew(0.6deg);
+  }
+
+  70% {
+    clip: rect(41px, 9999px, 62px, 0);
+    transform: skew(0.15deg);
+  }
+
+  75% {
+    clip: rect(2px, 9999px, 82px, 0);
+    transform: skew(0.45deg);
+  }
+
+  80% {
+    clip: rect(47px, 9999px, 73px, 0);
+    transform: skew(0.7deg);
+  }
+
+  85% {
+    clip: rect(3px, 9999px, 27px, 0);
+    transform: skew(0.3deg);
+  }
+
+  90% {
+    clip: rect(26px, 9999px, 55px, 0);
+    transform: skew(0.5deg);
+  }
+
+  95% {
+    clip: rect(42px, 9999px, 97px, 0);
+    transform: skew(0.2deg);
+  }
+
+  100% {
+    clip: rect(38px, 9999px, 49px, 0);
+    transform: skew(0.4deg);
+  }
 }
 
 @keyframes glitch-skew {
-  0% { transform: skew(0deg); }
-  10% { transform: skew(1deg); }
-  20% { transform: skew(-1deg); }
-  30% { transform: skew(0.5deg); }
-  40% { transform: skew(-0.5deg); }
-  50% { transform: skew(0deg); }
-  60% { transform: skew(0.5deg); }
-  70% { transform: skew(-0.5deg); }
-  80% { transform: skew(1deg); }
-  90% { transform: skew(-1deg); }
-  100% { transform: skew(0deg); }
+  0% {
+    transform: skew(0deg);
+  }
+
+  10% {
+    transform: skew(1deg);
+  }
+
+  20% {
+    transform: skew(-1deg);
+  }
+
+  30% {
+    transform: skew(0.5deg);
+  }
+
+  40% {
+    transform: skew(-0.5deg);
+  }
+
+  50% {
+    transform: skew(0deg);
+  }
+
+  60% {
+    transform: skew(0.5deg);
+  }
+
+  70% {
+    transform: skew(-0.5deg);
+  }
+
+  80% {
+    transform: skew(1deg);
+  }
+
+  90% {
+    transform: skew(-1deg);
+  }
+
+  100% {
+    transform: skew(0deg);
+  }
 }
 
 @layer utilities {
   .glass {
     background: var(--glass-bg);
     backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
     border: 1px solid var(--glass-border);
   }
-  
+
   .glass-strong {
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(10, 10, 15, 0.85);
+    /* Increased opacity for better visibility and performance */
     backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     border: 1px solid rgba(255, 255, 255, 0.15);
   }
-  
+
   .glow-primary {
     box-shadow: var(--glow-primary);
   }
-  
+
   .glow-accent {
     box-shadow: var(--glow-accent);
   }
-  
+
   .glow-danger {
     box-shadow: var(--glow-danger);
   }
-  
+
   .glow-intense {
     box-shadow: 0 0 30px hsl(158 100% 50% / 0.6), 0 0 60px hsl(158 100% 50% / 0.3);
   }
-  
+
   .text-gradient-primary {
     @apply bg-gradient-to-r from-toxic-green to-neon-cyan bg-clip-text text-transparent;
   }
-  
+
   .text-gradient-cyber {
     @apply bg-gradient-to-r from-cyber-purple to-neon-cyan bg-clip-text text-transparent;
   }
-  
+
   .text-gradient-fire {
     @apply bg-gradient-to-r from-neon-red via-yellow-500 to-neon-red bg-clip-text text-transparent;
   }
-  
+
   .hexagon-pattern {
     background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0l25.98 15v30L30 60 4.02 45V15z' fill='none' stroke='%23ffffff' stroke-width='0.5' opacity='0.05'/%3E%3C/svg%3E");
   }
-  
+
   .scan-line {
-    background: linear-gradient(
-      to bottom,
-      transparent 50%,
-      rgba(0, 255, 157, 0.03) 50%
-    );
+    background: linear-gradient(to bottom,
+        transparent 50%,
+        rgba(0, 255, 157, 0.03) 50%);
     background-size: 100% 4px;
     pointer-events: none;
   }
-  
+
   .noise-overlay {
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
     opacity: 0.03;
     pointer-events: none;
   }
-  
+
   .border-glow {
     position: relative;
   }
-  
+
   .border-glow::before {
     content: '';
     position: absolute;
@@ -270,33 +501,32 @@ All colors MUST be HSL.
     opacity: 0;
     transition: opacity 0.3s;
   }
-  
+
   .border-glow:hover::before {
     opacity: 1;
     animation: border-rotate 3s linear infinite;
   }
-  
+
   @keyframes border-rotate {
     to {
       transform: rotate(360deg);
     }
   }
-  
+
   .shimmer {
-    background: linear-gradient(
-      90deg,
-      transparent,
-      rgba(255, 255, 255, 0.1),
-      transparent
-    );
+    background: linear-gradient(90deg,
+        transparent,
+        rgba(255, 255, 255, 0.1),
+        transparent);
     background-size: 200% 100%;
     animation: shimmer 2s infinite;
   }
-  
+
   @keyframes shimmer {
     0% {
       background-position: -200% 0;
     }
+
     100% {
       background-position: 200% 0;
     }
@@ -306,10 +536,10 @@ All colors MUST be HSL.
   .hover-lift {
     @apply transition-all duration-300 ease-out;
   }
-  
+
   .hover-lift:hover {
     transform: translateY(-8px) scale(1.02);
-    box-shadow: 
+    box-shadow:
       0 20px 40px -15px hsl(var(--primary) / 0.3),
       0 0 30px -10px hsl(var(--primary) / 0.2);
   }
@@ -318,7 +548,7 @@ All colors MUST be HSL.
     @apply transition-all duration-300;
     position: relative;
   }
-  
+
   .hover-glow::after {
     content: '';
     position: absolute;
@@ -326,13 +556,13 @@ All colors MUST be HSL.
     border-radius: inherit;
     opacity: 0;
     transition: opacity 0.3s ease;
-    box-shadow: 
+    box-shadow:
       0 0 30px hsl(var(--primary) / 0.4),
       0 0 60px hsl(var(--primary) / 0.2),
       inset 0 0 30px hsl(var(--primary) / 0.1);
     pointer-events: none;
   }
-  
+
   .hover-glow:hover::after {
     opacity: 1;
   }
@@ -340,7 +570,7 @@ All colors MUST be HSL.
   .hover-shine {
     @apply relative overflow-hidden;
   }
-  
+
   .hover-shine::before {
     content: '';
     position: absolute;
@@ -348,15 +578,13 @@ All colors MUST be HSL.
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(
-      90deg,
-      transparent,
-      rgba(255, 255, 255, 0.2),
-      transparent
-    );
+    background: linear-gradient(90deg,
+        transparent,
+        rgba(255, 255, 255, 0.2),
+        transparent);
     transition: left 0.5s ease;
   }
-  
+
   .hover-shine:hover::before {
     left: 100%;
   }
@@ -367,7 +595,7 @@ All colors MUST be HSL.
     transform-style: preserve-3d;
     perspective: 1000px;
   }
-  
+
   .card-3d:hover {
     transform: rotateY(5deg) rotateX(5deg) translateZ(10px);
   }
@@ -382,24 +610,23 @@ All colors MUST be HSL.
     position: relative;
     overflow: hidden;
   }
-  
+
   .hologram::before {
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(
-      45deg,
-      transparent 30%,
-      hsl(var(--primary) / 0.1) 50%,
-      transparent 70%
-    );
+    background: linear-gradient(45deg,
+        transparent 30%,
+        hsl(var(--primary) / 0.1) 50%,
+        transparent 70%);
     animation: hologram-scan 3s linear infinite;
   }
-  
+
   @keyframes hologram-scan {
     0% {
       transform: translateX(-100%) translateY(-100%);
     }
+
     100% {
       transform: translateX(100%) translateY(100%);
     }
@@ -407,7 +634,7 @@ All colors MUST be HSL.
 
   /* Neon text glow */
   .text-neon {
-    text-shadow: 
+    text-shadow:
       0 0 5px hsl(var(--primary)),
       0 0 10px hsl(var(--primary)),
       0 0 20px hsl(var(--primary)),
@@ -420,27 +647,25 @@ All colors MUST be HSL.
     background: hsl(var(--background));
     border-radius: var(--radius);
   }
-  
+
   .gradient-border::before {
     content: '';
     position: absolute;
     inset: 0;
     padding: 2px;
     border-radius: inherit;
-    background: linear-gradient(
-      var(--gradient-angle, 0deg),
-      hsl(var(--primary)),
-      hsl(var(--accent)),
-      hsl(var(--cyber-purple)),
-      hsl(var(--primary))
-    );
+    background: linear-gradient(var(--gradient-angle, 0deg),
+        hsl(var(--primary)),
+        hsl(var(--accent)),
+        hsl(var(--cyber-purple)),
+        hsl(var(--primary)));
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;
     animation: gradient-rotate 4s linear infinite;
   }
-  
+
   @keyframes gradient-rotate {
     to {
       --gradient-angle: 360deg;
@@ -451,7 +676,7 @@ All colors MUST be HSL.
   .pulse-ring {
     position: relative;
   }
-  
+
   .pulse-ring::after {
     content: '';
     position: absolute;
@@ -460,12 +685,13 @@ All colors MUST be HSL.
     border: 2px solid hsl(var(--primary) / 0.5);
     animation: pulse-ring-animation 2s ease-out infinite;
   }
-  
+
   @keyframes pulse-ring-animation {
     0% {
       transform: scale(1);
       opacity: 1;
     }
+
     100% {
       transform: scale(1.2);
       opacity: 0;
@@ -476,11 +702,14 @@ All colors MUST be HSL.
   .animate-float {
     animation: float-animation 3s ease-in-out infinite;
   }
-  
+
   @keyframes float-animation {
-    0%, 100% {
+
+    0%,
+    100% {
       transform: translateY(0);
     }
+
     50% {
       transform: translateY(-10px);
     }
@@ -491,12 +720,12 @@ All colors MUST be HSL.
     will-change: transform;
     transform: translateZ(-2px) scale(3);
   }
-  
+
   .parallax-medium {
     will-change: transform;
     transform: translateZ(-1px) scale(2);
   }
-  
+
   .parallax-fast {
     will-change: transform;
     transform: translateZ(0);
@@ -533,12 +762,10 @@ All colors MUST be HSL.
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(
-      90deg,
-      transparent,
-      rgba(255, 255, 255, 0.3),
-      transparent
-    );
+    background: linear-gradient(90deg,
+        transparent,
+        rgba(255, 255, 255, 0.3),
+        transparent);
     transition: left 0.5s ease;
   }
 
@@ -547,7 +774,7 @@ All colors MUST be HSL.
   }
 
   .btn-cyber:hover {
-    box-shadow: 
+    box-shadow:
       0 0 20px hsl(var(--primary) / 0.5),
       0 0 40px hsl(var(--primary) / 0.3),
       inset 0 0 20px hsl(var(--primary) / 0.1);
@@ -561,5 +788,21 @@ All colors MUST be HSL.
     background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
     border-radius: inherit;
     z-index: -1;
+  }
+
+  /* Text Shine Animation */
+  @keyframes text-shine {
+    0% {
+      background-position: 0% 50%;
+    }
+
+    100% {
+      background-position: 200% 50%;
+    }
+  }
+
+  .animate-text-shine {
+    background-size: 200% auto;
+    animation: text-shine 3s linear infinite;
   }
 }

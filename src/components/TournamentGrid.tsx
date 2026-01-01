@@ -62,13 +62,13 @@ export const TournamentGrid = () => {
   const y = useTransform(scrollYProgress, [0, 1], [80, -80]);
 
   return (
-    <section ref={containerRef} className="py-24 px-4 relative overflow-hidden">
+    <section id="tournaments" ref={containerRef} className="py-24 px-4 relative overflow-hidden">
       {/* Parallax orbs */}
-      <motion.div 
+      <motion.div
         style={{ y }}
         className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[150px] pointer-events-none"
       />
-      <motion.div 
+      <motion.div
         style={{ y: useTransform(scrollYProgress, [0, 1], [-40, 40]) }}
         className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-accent/5 rounded-full blur-[120px] pointer-events-none"
       />
@@ -81,7 +81,7 @@ export const TournamentGrid = () => {
           transition={{ duration: 0.6 }}
           className="text-center mb-16"
         >
-          <motion.span 
+          <motion.span
             className="inline-block px-4 py-2 glass rounded-full text-sm font-medium text-primary mb-4"
             initial={{ opacity: 0, scale: 0.9 }}
             whileInView={{ opacity: 1, scale: 1 }}
@@ -99,7 +99,7 @@ export const TournamentGrid = () => {
         <div className="grid md:grid-cols-2 gap-6 max-w-6xl mx-auto mb-12">
           {activeTournaments.map((tournament, idx) => {
             const fillPercentage = (tournament.filled / tournament.slots) * 100;
-            
+
             return (
               <motion.div
                 key={tournament.id}
@@ -148,7 +148,7 @@ export const TournamentGrid = () => {
                     { icon: Users, label: "Entry Fee", value: tournament.entryFee, color: "text-accent" },
                     { icon: Calendar, label: "Date", value: tournament.date, color: "text-cyber-purple" },
                   ].map((item, i) => (
-                    <motion.div 
+                    <motion.div
                       key={i}
                       className="flex items-center justify-between"
                       whileHover={{ x: 4 }}
@@ -173,7 +173,7 @@ export const TournamentGrid = () => {
                   <div className="relative">
                     <Progress value={fillPercentage} className="h-2" />
                     {fillPercentage > 80 && (
-                      <motion.span 
+                      <motion.span
                         className="absolute -top-1 right-0 text-xs text-destructive font-bold"
                         animate={{ opacity: [1, 0.5, 1] }}
                         transition={{ duration: 1, repeat: Infinity }}
@@ -185,7 +185,7 @@ export const TournamentGrid = () => {
                 </div>
 
                 {/* Register Button */}
-                <Button 
+                <Button
                   className="w-full btn-cyber font-bold uppercase tracking-wider"
                   size="lg"
                 >
@@ -252,7 +252,7 @@ export const TournamentGrid = () => {
                 </div>
               </div>
 
-              <Button 
+              <Button
                 className="w-full"
                 size="lg"
                 disabled

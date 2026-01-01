@@ -2,23 +2,21 @@ import { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 // Lazy load pages for better performance
 const Index = lazy(() => import("./pages/Index"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Registration = lazy(() => import("./pages/Registration"));
+const Login = lazy(() => import("./pages/Login"));
 const NotFound = lazy(() => import("./pages/NotFound"));
-
-const queryClient = new QueryClient();
 
 // Sci-fi Gaming Loader
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-background relative overflow-hidden">
     {/* Background grid */}
     <div className="absolute inset-0 opacity-10">
-      <div 
+      <div
         className="absolute inset-0"
         style={{
           backgroundImage: `
@@ -29,39 +27,39 @@ const PageLoader = () => (
         }}
       />
     </div>
-    
+
     <div className="relative flex flex-col items-center gap-6">
       {/* Hexagon loader */}
       <div className="relative w-24 h-24">
         {/* Outer rotating hexagon */}
-        <div 
+        <div
           className="absolute inset-0 border-2 border-primary animate-spin"
-          style={{ 
+          style={{
             clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
             animationDuration: '3s',
-          }} 
+          }}
         />
         {/* Middle pulsing hexagon */}
-        <div 
+        <div
           className="absolute inset-3 bg-primary/20 animate-pulse"
-          style={{ 
+          style={{
             clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
-          }} 
+          }}
         />
         {/* Inner core */}
-        <div 
+        <div
           className="absolute inset-6 bg-gradient-to-br from-primary to-accent"
-          style={{ 
+          style={{
             clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
             animation: 'pulse 1s ease-in-out infinite',
-          }} 
+          }}
         />
         {/* Scanning line */}
-        <div 
+        <div
           className="absolute inset-0 overflow-hidden"
           style={{ clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)' }}
         >
-          <div 
+          <div
             className="absolute w-full h-1 bg-gradient-to-r from-transparent via-primary to-transparent"
             style={{
               animation: 'scan 1.5s ease-in-out infinite',
@@ -82,17 +80,17 @@ const PageLoader = () => (
           />
         ))}
       </div>
-      
+
       {/* Text with glitch effect */}
       <div className="relative">
         <span className="text-primary font-orbitron font-bold text-lg tracking-[0.3em] glitch-text" data-text="INITIALIZING">
           INITIALIZING
         </span>
       </div>
-      
+
       {/* Progress bar */}
       <div className="w-48 h-1 bg-muted/30 rounded-full overflow-hidden">
-        <div 
+        <div
           className="h-full bg-gradient-to-r from-primary via-accent to-primary rounded-full"
           style={{
             animation: 'loading-bar 1.5s ease-in-out infinite',
@@ -100,7 +98,7 @@ const PageLoader = () => (
         />
       </div>
     </div>
-    
+
     <style>{`
       @keyframes scan {
         0%, 100% { top: 0%; }
@@ -115,24 +113,28 @@ const PageLoader = () => (
   </div>
 );
 
+const SmoothScroll = lazy(() => import("./components/SmoothScroll"));
+
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/register" element={<Registration />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Suspense>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <TooltipProvider>
+    <Toaster />
+    <Sonner />
+    <Suspense fallback={null}>
+      <SmoothScroll />
+    </Suspense>
+    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route path="/" element={<Index />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/register" element={<Registration />} />
+          <Route path="/login" element={<Login />} />
+          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Suspense>
+    </BrowserRouter>
+  </TooltipProvider>
 );
 
 export default App;
