@@ -2,7 +2,7 @@
 
 Follow these steps:
 
-```sh
+
 # Step 1: Clone the repository using the project's Git URL.
 git clone <YOUR_GIT_URL>
 
@@ -39,6 +39,8 @@ This project is built with:
 - React
 - shadcn-ui
 - Tailwind CSS
+
+
 
 ## How can I deploy this project?
 
