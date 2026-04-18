@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,7 +17,9 @@ export default function Login() {
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
+    const location = useLocation();
     const { toast } = useToast();
+    const redirectTo = (location.state as { from?: string } | null)?.from || "/tournaments";
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -38,11 +40,11 @@ export default function Login() {
             } else {
                 toast({
                     title: "Login Successful",
-                    description: "Taking you to the dashboard/registration.",
+                    description: "Taking you to active tournaments.",
                 });
             }
 
-            navigate("/create-team");
+            navigate(redirectTo, { replace: true });
         } catch (error: any) {
             toast({
                 title: "Login Failed",
@@ -218,6 +220,7 @@ export default function Login() {
                                 setLoading(true);
                                 try {
                                     await mockApi.login("google_user@gmail.com", "google-oauth");
+                                    navigate(redirectTo, { replace: true });
                                 } finally {
                                     setLoading(false);
                                 }

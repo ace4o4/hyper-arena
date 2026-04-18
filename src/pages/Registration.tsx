@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Background3D } from "@/components/Background3D";
 import { Navbar } from "@/components/Navbar";
@@ -22,8 +22,13 @@ interface FormErrors {
 }
 
 export default function Registration() {
-  const [step, setStep] = useState<Step>("game");
-  const [selectedGame, setSelectedGame] = useState("");
+  const [searchParams] = useSearchParams();
+  const selectedTournamentId = searchParams.get("tournamentId");
+  const prefilledGame = searchParams.get("game");
+  const initialGame = prefilledGame === "BGMI" || prefilledGame === "Free Fire" ? prefilledGame : "";
+
+  const [step, setStep] = useState<Step>(initialGame ? "details" : "game");
+  const [selectedGame, setSelectedGame] = useState(initialGame);
   const navigate = useNavigate();
   const { toast } = useToast();
   const [errors, setErrors] = useState<FormErrors>({});
@@ -101,6 +106,7 @@ export default function Registration() {
       await mockApi.createTeam({
         teamName,
         game: selectedGame,
+        tournamentId: selectedTournamentId,
         leaderEmail,
         logo: teamLogo,
         leader: {

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
 import {
   Menu,
   X,
@@ -14,7 +15,7 @@ import {
 
 const navLinks = [
   { name: "Home", href: "/", icon: Zap },
-  { name: "Tournaments", href: "/#tournaments", icon: Trophy },
+  { name: "Tournaments", href: "/tournaments", icon: Trophy },
   { name: "Leaderboard", href: "/#leaderboard", icon: Users },
   { name: "Games", href: "/#games", icon: Gamepad2 },
   { name: "Dashboard", href: "/dashboard", icon: User },
@@ -23,26 +24,14 @@ const navLinks = [
 export const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-
-  // Check if user is logged in by checking localStorage
-  useEffect(() => {
-    const checkAuth = () => {
-      const teamData = localStorage.getItem('teamRegistration');
-      setIsLoggedIn(!!teamData);
-    };
-    checkAuth();
-    // Listen for storage changes
-    window.addEventListener('storage', checkAuth);
-    return () => window.removeEventListener('storage', checkAuth);
-  }, []);
+  const { user, loading, logout } = useAuth();
+  const isLoggedIn = !loading && Boolean(user);
 
   const handleLogout = async () => {
-    localStorage.removeItem('teamRegistration');
-    setIsLoggedIn(false);
-    navigate("/");
+    await logout();
+    navigate("/auth");
     setIsMobileMenuOpen(false);
   };
 
@@ -189,7 +178,7 @@ export const Navbar = () => {
                     </motion.button>
                   </Link>
 
-                  <Link to="/create-team">
+                  <Link to="/tournaments">
                     <motion.button
                       whileHover={{ scale: 1.05, boxShadow: "0 0 20px rgba(0, 255, 157, 0.5)" }}
                       whileTap={{ scale: 0.95 }}
@@ -254,7 +243,7 @@ export const Navbar = () => {
                   transition={{ delay: navLinks.length * 0.1 }}
                   className="mt-4"
                 >
-                  <Link to={isLoggedIn ? "/dashboard" : "/create-team"} onClick={() => setIsMobileMenuOpen(false)}>
+                  <Link to={isLoggedIn ? "/dashboard" : "/tournaments"} onClick={() => setIsMobileMenuOpen(false)}>
                     <button className="w-full py-4 bg-primary text-primary-foreground font-orbitron font-bold rounded-lg glow-primary">
                       {isLoggedIn ? "DASHBOARD" : "JOIN TOURNAMENT"}
                     </button>

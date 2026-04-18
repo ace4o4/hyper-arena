@@ -163,7 +163,7 @@ export const Hero = () => {
           >
             <Button
               size="lg"
-              onClick={() => navigate("/create-team")}
+              onClick={() => navigate("/tournaments")}
               className="btn-cyber bg-primary text-primary-foreground hover:bg-primary/90 font-bold text-lg px-10 py-7 relative overflow-hidden"
             >
               <Zap className="mr-2 h-5 w-5" />

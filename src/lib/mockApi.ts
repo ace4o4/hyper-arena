@@ -83,6 +83,7 @@ export const mockApi = {
     const newTeam = {
       id: teamRef.id,
       user_id: user.uid,
+      tournamentId: teamData.tournamentId ?? null,
       teamName: teamData.teamName,
       teamNameLower: teamData.teamName.toLowerCase(),
       game: teamData.game,
