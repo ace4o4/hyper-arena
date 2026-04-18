@@ -20,24 +20,7 @@ const activeTournaments = [
   }
 ];
 
-const comingSoonTournaments = [
-  {
-    id: 3,
-    title: "Squad Showdown",
-    game: "BGMI",
-    prize: "₹75,000",
-    date: "Coming Soon",
-    isActive: false,
-  },
-  {
-    id: 4,
-    title: "Solo Masters",
-    game: "Free Fire",
-    prize: "₹40,000",
-    date: "Coming Soon",
-    isActive: false,
-  },
-];
+
 
 export const TournamentGrid = () => {
   const containerRef = useRef<HTMLElement>(null);
@@ -175,70 +158,7 @@ export const TournamentGrid = () => {
           })}
         </div>
 
-        {/* Coming Soon Tournaments */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-center mb-8"
-        >
-          <span className="text-muted-foreground text-lg">More tournaments coming soon...</span>
-        </motion.div>
 
-        <div className="grid md:grid-cols-2 gap-6 max-w-6xl mx-auto opacity-60">
-          {comingSoonTournaments.map((tournament, idx) => (
-            <motion.div
-              key={tournament.id}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: idx * 0.1 }}
-              className="gpu-accelerated glass rounded-2xl p-6 relative overflow-hidden border border-muted/20"
-            >
-              {/* Coming Soon Badge */}
-              <div className="absolute top-4 right-4 bg-muted/30 backdrop-blur-sm border border-muted/50 rounded-full px-3 py-1">
-                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Coming Soon</span>
-              </div>
-
-              {/* Game Badge */}
-              <div className="mb-4">
-                <span className="inline-block bg-muted/20 text-muted-foreground px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-                  {tournament.game}
-                </span>
-              </div>
-
-              <h3 className="text-2xl font-black mb-4 text-muted-foreground">
-                {tournament.title}
-              </h3>
-
-              <div className="space-y-3 mb-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-muted-foreground/60">
-                    <Trophy className="h-4 w-4" />
-                    <span className="text-sm">Prize Pool</span>
-                  </div>
-                  <span className="font-bold text-muted-foreground">{tournament.prize}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-muted-foreground/60">
-                    <Calendar className="h-4 w-4" />
-                    <span className="text-sm">Date</span>
-                  </div>
-                  <span className="font-bold text-muted-foreground">{tournament.date}</span>
-                </div>
-              </div>
-
-              <Button
-                className="w-full"
-                size="lg"
-                disabled
-                variant="outline"
-              >
-                Stay Tuned
-              </Button>
-            </motion.div>
-          ))}
-        </div>
       </div>
     </section>
   );

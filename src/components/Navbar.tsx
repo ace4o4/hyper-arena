@@ -15,8 +15,7 @@ import {
 const navLinks = [
   { name: "Home", href: "/", icon: Zap },
   { name: "Tournaments", href: "/#tournaments", icon: Trophy },
-  { name: "Leaderboard", href: "/#leaderboard", icon: Users },
-  { name: "Games", href: "/#games", icon: Gamepad2 },
+  { name: "Leaderboard", href: "/leaderboard", icon: Users },
   { name: "Dashboard", href: "/dashboard", icon: User },
 ];
 
