@@ -29,10 +29,9 @@ export const Background3D = () => {
         className="absolute -top-1/4 -left-1/4 w-[600px] h-[600px] rounded-full opacity-30"
       >
         <div
-          className="w-full h-full rounded-full"
+          className="w-full h-full rounded-full blur-[40px] md:blur-[80px]"
           style={{
             background: `radial-gradient(circle at 30% 30%, hsl(var(--cyber-purple) / 0.6), transparent 60%)`,
-            filter: 'blur(80px)',
           }}
         />
       </motion.div>
@@ -42,17 +41,16 @@ export const Background3D = () => {
         className="absolute -bottom-1/4 -right-1/4 w-[700px] h-[700px] rounded-full opacity-25"
       >
         <div
-          className="w-full h-full rounded-full"
+          className="w-full h-full rounded-full blur-[50px] md:blur-[100px]"
           style={{
             background: `radial-gradient(circle at 70% 30%, hsl(var(--neon-cyan) / 0.5), transparent 60%)`,
-            filter: 'blur(100px)',
           }}
         />
       </motion.div>
 
-      {/* 3D Grid floor effect - Optimized */}
+      {/* 3D Grid floor effect - Optimized, hide on small screens to save GPU */}
       <div
-        className="absolute bottom-0 left-0 right-0 h-[50vh] opacity-20"
+        className="hidden md:block absolute bottom-0 left-0 right-0 h-[50vh] opacity-20"
         style={{
           perspective: '500px',
           perspectiveOrigin: '50% 0%',

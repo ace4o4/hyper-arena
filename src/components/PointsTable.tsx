@@ -1,3 +1,4 @@
+
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef, useState } from "react";
 import { Trophy, TrendingUp, TrendingDown, Minus, ChevronRight, Crown, Zap, Target, Crosshair } from "lucide-react";
@@ -100,11 +101,13 @@ export const PointsTable = () => {
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
               transition={{ delay: idx * 0.1 }}
-              className="glass rounded-xl p-4 text-center border border-border/20"
+              className="gpu-accelerated clip-panel glass rounded-none p-4 text-center border-l-2 border-primary/20 relative"
             >
+              {/* Corner decor */}
+              <div className="absolute top-0 right-0 w-4 h-4 border-t border-r border-primary/50" />
               <stat.icon className="w-5 h-5 text-neon-cyan mx-auto mb-2" />
-              <div className="text-2xl font-black text-foreground">{stat.value}</div>
-              <div className="text-xs text-muted-foreground">{stat.label}</div>
+              <div className="text-2xl font-black text-foreground text-shadow-glow">{stat.value}</div>
+              <div className="text-[10px] uppercase tracking-widest text-muted-foreground">{stat.label}</div>
             </motion.div>
           ))}
         </motion.div>
@@ -116,20 +119,26 @@ export const PointsTable = () => {
           viewport={{ once: true }}
           className="max-w-5xl mx-auto"
         >
+          {/* HUD Target line above table */}
+          <div className="w-full flex items-center gap-4 mb-4">
+            <div className="w-4 h-4 border border-primary/50 rotate-45" />
+            <div className="h-[1px] flex-1 bg-gradient-to-r from-primary/50 to-transparent" />
+          </div>
+
           {/* Table Header */}
-          <div className="glass-strong rounded-t-2xl p-4 border-b border-border/20">
-            <div className="grid grid-cols-12 gap-4 text-sm font-orbitron uppercase tracking-wider text-muted-foreground">
-              <div className="col-span-1 text-center">#</div>
-              <div className="col-span-4 md:col-span-3">Team</div>
-              <div className="col-span-2 text-center hidden md:block">Wins</div>
-              <div className="col-span-2 text-center hidden md:block">Kills</div>
-              <div className="col-span-2 text-center">Win Rate</div>
-              <div className="col-span-3 md:col-span-2 text-center">Points</div>
+          <div className="glass-strong clip-diagonal p-4 border-b border-primary/20 bg-background/90 text-primary">
+            <div className="grid grid-cols-12 gap-4 text-xs font-bold uppercase tracking-widest">
+              <div className="col-span-1 text-center">Rnk</div>
+              <div className="col-span-4 md:col-span-3">Squad</div>
+              <div className="col-span-2 text-center hidden md:block">W</div>
+              <div className="col-span-2 text-center hidden md:block">K/D</div>
+              <div className="col-span-2 text-center">Win%</div>
+              <div className="col-span-3 md:col-span-2 text-center">Score</div>
             </div>
           </div>
 
           {/* Table Body */}
-          <div className="glass-strong rounded-b-2xl overflow-hidden">
+          <div className="space-y-2 mt-4 overflow-hidden px-4 md:px-0">
             {teams.map((team, idx) => (
               <motion.div
                 key={team.rank}
@@ -139,7 +148,7 @@ export const PointsTable = () => {
                 transition={{ delay: idx * 0.05 }}
                 onMouseEnter={() => setHoveredRow(team.rank)}
                 onMouseLeave={() => setHoveredRow(null)}
-                className={`relative grid grid-cols-12 gap-4 p-4 items-center transition-all duration-300 cursor-pointer ${getRankStyle(team.rank)} ${hoveredRow === team.rank ? "bg-white/5" : ""
+                className={`gpu-accelerated relative grid grid-cols-12 gap-4 p-4 items-center transition-all duration-300 cursor-pointer clip-panel bg-background/80 border-l-[4px] ${getRankStyle(team.rank)} ${hoveredRow === team.rank ? "translate-x-4 bg-white/5" : ""
                   }`}
               >
                 {/* Hologram highlight on hover */}

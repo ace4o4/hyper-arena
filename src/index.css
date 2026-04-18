@@ -805,4 +805,42 @@ All colors MUST be HSL.
     background-size: 200% auto;
     animation: text-shine 3s linear infinite;
   }
+
+  /* ── Angular & Structural Utilities (Jack UI Style) ── */
+  
+  /* Chamfered corners (like a cut-off rectangle) */
+  .clip-panel {
+    clip-path: polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px);
+  }
+  
+  /* Extreme shear/parallelogram */
+  .clip-diagonal {
+    clip-path: polygon(10% 0, 100% 0, 90% 100%, 0% 100%);
+  }
+
+  /* Right-leaning shear */
+  .clip-diagonal-right {
+    clip-path: polygon(0 0, 90% 0, 100% 100%, 10% 100%);
+  }
+  
+  /* Cut-out corner for data panels */
+  .clip-data-panel {
+    clip-path: polygon(0 0, calc(100% - 30px) 0, 100% 30px, 100% 100%, 30px 100%, 0 calc(100% - 30px));
+  }
+
+  /* Thin angular precision lines */
+  .hud-line {
+    position: relative;
+  }
+  .hud-line::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: -20px;
+    width: 20px;
+    height: 1px;
+    background: currentColor;
+    transform: rotate(45deg);
+    transform-origin: left center;
+  }
 }

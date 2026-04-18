@@ -9,6 +9,7 @@ const Index = lazy(() => import("./pages/Index"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Registration = lazy(() => import("./pages/Registration"));
 const Login = lazy(() => import("./pages/Login"));
+const VerifyEmail = lazy(() => import("./pages/VerifyEmail"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Sci-fi Gaming Loader
@@ -127,8 +128,11 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/register" element={<Registration />} />
+          <Route path="/create-team" element={<Registration />} />
+          <Route path="/auth" element={<Login />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/auth/confirm" element={<VerifyEmail />} />
+          <Route path="/verified" element={<VerifyEmail />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

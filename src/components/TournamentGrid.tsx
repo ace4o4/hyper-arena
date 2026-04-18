@@ -8,28 +8,16 @@ import { useNavigate } from "react-router-dom";
 const activeTournaments = [
   {
     id: 1,
-    title: "BGMI Championship",
-    game: "BGMI",
-    prize: "₹50,000",
-    slots: 64,
-    filled: 48,
+    title: "GCB Esports Tournament",
+    game: "Multiplayer",
+    prize: "₹80,000",
+    slots: 112,
+    filled: 80,
     date: "15 Dec 2025",
     isLive: true,
     entryFee: "₹100",
     isActive: true,
-  },
-  {
-    id: 2,
-    title: "Free Fire Arena",
-    game: "Free Fire",
-    prize: "₹30,000",
-    slots: 48,
-    filled: 32,
-    date: "18 Dec 2025",
-    isLive: true,
-    entryFee: "₹50",
-    isActive: true,
-  },
+  }
 ];
 
 const comingSoonTournaments = [
@@ -89,14 +77,14 @@ export const TournamentGrid = () => {
           >
             COMPETE NOW
           </motion.span>
-          <h2 className="text-5xl md:text-7xl font-black mb-4">
-            <span className="text-gradient-primary">Active Tournaments</span>
+          <h2 className="text-3xl sm:text-4xl md:text-7xl font-black mb-4">
+            <span className="text-gradient-primary break-words whitespace-normal text-center">Active Tournaments</span>
           </h2>
-          <p className="text-xl text-muted-foreground">Register now and claim your victory</p>
+          <p className="text-lg md:text-xl text-muted-foreground px-4">Register now and claim your victory</p>
         </motion.div>
 
-        {/* Active Tournaments */}
-        <div className="grid md:grid-cols-2 gap-6 max-w-6xl mx-auto mb-12">
+        {/* Active Tournaments - Asymmetrical Stack */}
+        <div className="grid md:grid-cols-1 gap-8 max-w-5xl mx-auto mb-16">
           {activeTournaments.map((tournament, idx) => {
             const fillPercentage = (tournament.filled / tournament.slots) * 100;
 
@@ -106,94 +94,82 @@ export const TournamentGrid = () => {
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: idx * 0.1 }}
-                whileHover={{ y: -10, scale: 1.02 }}
-                className="glass-strong rounded-2xl p-6 relative overflow-hidden group cursor-pointer border border-primary/20"
-                onClick={() => navigate("/register")}
+                transition={{ duration: 0.6 }}
+                whileHover={{ scale: 1.01 }}
+                className={`gpu-accelerated clip-panel glass-strong p-0 relative overflow-hidden group cursor-pointer border-l-[4px] border-primary`}
+                onClick={() => navigate("/create-team")}
               >
-                {/* Hover glow effect */}
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
-                  <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-accent/10" />
-                </div>
+                <div className="grid grid-cols-1 md:grid-cols-12 h-full">
+                  {/* Left Side: Game Image/Graphic Placeholder */}
+                  <div className="md:col-span-4 relative bg-black/40 overflow-hidden hide-on-mobile border-r border-white/5">
+                    <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 to-transparent mix-blend-overlay" />
+                    {/* Mock character silhouette */}
+                    <div className="absolute -bottom-10 -right-10 w-64 h-64 bg-primary/10 rounded-full blur-3xl" />
+                    <div className="absolute top-4 left-4">
+                      <span className="inline-block bg-primary/20 text-primary px-3 py-1 text-xs font-bold uppercase tracking-wider clip-diagonal">
+                        {tournament.game}
+                      </span>
+                    </div>
+                  </div>
 
-                {/* Live Badge */}
-                <motion.div
-                  className="absolute top-4 right-4 flex items-center gap-2 bg-destructive/20 backdrop-blur-sm border border-destructive/50 rounded-full px-3 py-1 pulse-ring"
-                >
-                  <motion.div
-                    animate={{ scale: [1, 1.2, 1] }}
-                    transition={{ duration: 1, repeat: Infinity }}
-                  >
-                    <CircleDot className="h-3 w-3 text-destructive" />
-                  </motion.div>
-                  <span className="text-xs font-bold text-destructive uppercase tracking-wider">Live</span>
-                </motion.div>
+                  {/* Right Side: Data */}
+                  <div className="md:col-span-8 p-6 md:p-8 relative">
+                    {/* Hover glow effect */}
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
+                      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5" />
+                    </div>
 
-                {/* Game Badge */}
-                <div className="mb-4">
-                  <span className="inline-block bg-primary/20 text-primary px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-                    {tournament.game}
-                  </span>
-                </div>
-
-                {/* Title */}
-                <h3 className="text-2xl font-black mb-4 group-hover:text-gradient-primary transition-all duration-300">
-                  {tournament.title}
-                </h3>
-
-                {/* Info Grid */}
-                <div className="space-y-3 mb-6">
-                  {[
-                    { icon: Trophy, label: "Prize Pool", value: tournament.prize, color: "text-primary" },
-                    { icon: Users, label: "Entry Fee", value: tournament.entryFee, color: "text-accent" },
-                    { icon: Calendar, label: "Date", value: tournament.date, color: "text-cyber-purple" },
-                  ].map((item, i) => (
-                    <motion.div
-                      key={i}
-                      className="flex items-center justify-between"
-                      whileHover={{ x: 4 }}
-                    >
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <item.icon className={`h-4 w-4 ${item.color}`} />
-                        <span className="text-sm">{item.label}</span>
-                      </div>
-                      <span className={`font-bold ${item.color}`}>{item.value}</span>
+                    {/* Live Badge */}
+                    <motion.div className="absolute top-0 right-0 flex items-center gap-2 bg-destructive/20 backdrop-blur-sm px-4 py-2 clip-data-panel">
+                      <motion.div animate={{ opacity: [1, 0.2, 1] }} transition={{ duration: 1, repeat: Infinity }}>
+                        <CircleDot className="h-3 w-3 text-destructive" />
+                      </motion.div>
+                      <span className="text-xs font-bold text-destructive uppercase tracking-wider">Live Match</span>
                     </motion.div>
-                  ))}
-                </div>
 
-                {/* Slots Progress */}
-                <div className="mb-6">
-                  <div className="flex justify-between text-sm mb-2">
-                    <span className="text-muted-foreground">Slots Filled</span>
-                    <span className="font-bold">
-                      {tournament.filled}/{tournament.slots}
-                    </span>
-                  </div>
-                  <div className="relative">
-                    <Progress value={fillPercentage} className="h-2" />
-                    {fillPercentage > 80 && (
-                      <motion.span
-                        className="absolute -top-1 right-0 text-xs text-destructive font-bold"
-                        animate={{ opacity: [1, 0.5, 1] }}
-                        transition={{ duration: 1, repeat: Infinity }}
-                      >
-                        Almost Full!
-                      </motion.span>
-                    )}
+                    {/* Title */}
+                    <h3 className="text-3xl font-black mb-6 group-hover:text-shadow-glow transition-all duration-300">
+                      {tournament.title}
+                    </h3>
+
+                    {/* Jack UI Info Grid layout */}
+                    <div className="grid grid-cols-2 gap-x-8 gap-y-4 mb-8">
+                      {[
+                        { icon: Trophy, label: "Prize Pool", value: tournament.prize, color: "text-primary" },
+                        { icon: Users, label: "Entry Fee", value: tournament.entryFee, color: "text-accent" },
+                        { icon: Calendar, label: "Date", value: tournament.date, color: "text-cyber-purple" },
+                      ].map((item, i) => (
+                        <div key={i} className="flex items-center gap-3">
+                          <div className={`p-2 bg-white/5 clip-diagonal ${item.color}`}>
+                            <item.icon className="h-4 w-4" />
+                          </div>
+                          <div>
+                            <div className="text-[10px] uppercase tracking-widest text-muted-foreground">{item.label}</div>
+                            <div className={`font-bold ${item.color}`}>{item.value}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Minimalist HP-Style Progress Bar */}
+                    <div className="mb-0 mt-auto">
+                      <div className="flex justify-between text-xs font-mono mb-2 uppercase text-muted-foreground">
+                        <span>Registration Capacity</span>
+                        <span className="font-bold text-white">{tournament.filled} / {tournament.slots}</span>
+                      </div>
+                      <div className="relative h-[2px] bg-white/10 w-full mb-1">
+                        <motion.div 
+                          className="absolute top-0 left-0 bottom-0 bg-primary"
+                          initial={{ width: 0 }}
+                          whileInView={{ width: `${fillPercentage}%` }}
+                          viewport={{ once: true }}
+                          transition={{ duration: 1, delay: 0.5 }}
+                        />
+                        <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-3 bg-white" />
+                      </div>
+                    </div>
                   </div>
                 </div>
-
-                {/* Register Button */}
-                <Button
-                  className="w-full btn-cyber font-bold uppercase tracking-wider"
-                  size="lg"
-                >
-                  <span className="flex items-center justify-center gap-2">
-                    Register Now
-                    <ArrowRight className="w-4 h-4" />
-                  </span>
-                </Button>
               </motion.div>
             );
           })}
@@ -217,7 +193,7 @@ export const TournamentGrid = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: idx * 0.1 }}
-              className="glass rounded-2xl p-6 relative overflow-hidden border border-muted/20"
+              className="gpu-accelerated glass rounded-2xl p-6 relative overflow-hidden border border-muted/20"
             >
               {/* Coming Soon Badge */}
               <div className="absolute top-4 right-4 bg-muted/30 backdrop-blur-sm border border-muted/50 rounded-full px-3 py-1">

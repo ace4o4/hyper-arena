@@ -189,7 +189,7 @@ export const Navbar = () => {
                     </motion.button>
                   </Link>
 
-                  <Link to="/register">
+                  <Link to="/create-team">
                     <motion.button
                       whileHover={{ scale: 1.05, boxShadow: "0 0 20px rgba(0, 255, 157, 0.5)" }}
                       whileTap={{ scale: 0.95 }}
@@ -254,7 +254,7 @@ export const Navbar = () => {
                   transition={{ delay: navLinks.length * 0.1 }}
                   className="mt-4"
                 >
-                  <Link to={isLoggedIn ? "/dashboard" : "/register"} onClick={() => setIsMobileMenuOpen(false)}>
+                  <Link to={isLoggedIn ? "/dashboard" : "/create-team"} onClick={() => setIsMobileMenuOpen(false)}>
                     <button className="w-full py-4 bg-primary text-primary-foreground font-orbitron font-bold rounded-lg glow-primary">
                       {isLoggedIn ? "DASHBOARD" : "JOIN TOURNAMENT"}
                     </button>
