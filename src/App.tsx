@@ -12,6 +12,8 @@ const Registration = lazy(() => import("./pages/Registration"));
 const Login = lazy(() => import("./pages/Login"));
 const Tournaments = lazy(() => import("./pages/Tournaments"));
 const VerifyEmail = lazy(() => import("./pages/VerifyEmail"));
+const AdminPanel = lazy(() => import("./pages/AdminPanel"));
+const Leaderboard = lazy(() => import("./pages/Leaderboard"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Sci-fi Gaming Loader
@@ -140,6 +142,8 @@ const App = () => (
           <Route path="/login" element={<Login />} />
           <Route path="/auth/confirm" element={<VerifyEmail />} />
           <Route path="/verified" element={<VerifyEmail />} />
+          <Route path="/admin" element={<AdminPanel />} />
+          <Route path="/leaderboard" element={<Leaderboard />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

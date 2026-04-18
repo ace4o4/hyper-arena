@@ -180,21 +180,24 @@ export const Hero = () => {
             </Button>
           </motion.div>
 
-          {/* Stats Bar */}
+          {/* Info Badges */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 1, duration: 0.8 }}
-            className="mt-12 grid grid-cols-3 gap-4 border-t border-white/10 pt-6"
+            className="mt-10 flex flex-wrap gap-3 border-t border-white/10 pt-6"
           >
             {[
-              { value: "₹50L+", label: "Prize Pool" },
-              { value: "10K+", label: "Players" },
-              { value: "500+", label: "Matches" },
-            ].map((stat, idx) => (
-              <div key={idx} className="text-left relative pl-4 before:content-[''] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-[2px] before:bg-primary/50">
-                <div className="text-2xl md:text-3xl font-black text-gradient-primary leading-none">{stat.value}</div>
-                <div className="text-muted-foreground text-xs font-bold uppercase tracking-wider mt-1">{stat.label}</div>
+              { icon: "🟢", label: "Registration Open" },
+              { icon: "🎮", label: "Squad Format" },
+              { icon: "🏆", label: "GCB Esports Tournament" },
+            ].map((badge, idx) => (
+              <div
+                key={idx}
+                className="flex items-center gap-2 px-4 py-2 glass border border-primary/20 clip-diagonal"
+              >
+                <span className="text-sm">{badge.icon}</span>
+                <span className="text-xs font-bold uppercase tracking-widest text-primary">{badge.label}</span>
               </div>
             ))}
           </motion.div>
