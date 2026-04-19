@@ -843,4 +843,15 @@ All colors MUST be HSL.
     transform: rotate(45deg);
     transform-origin: left center;
   }
+
+  /* --- OBS Broadcast Overlay --- */
+  body.obs-mode {
+    background: transparent !important;
+    background-image: none !important;
+  }
+
+  body.obs-mode #root {
+    background: transparent !important;
+    background-image: none !important;
+  }
 }
