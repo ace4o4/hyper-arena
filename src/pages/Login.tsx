@@ -219,8 +219,7 @@ export default function Login() {
                                 onClick={async () => {
                                 setLoading(true);
                                 try {
-                                    await mockApi.login("google_user@gmail.com", "google-oauth");
-                                    navigate(redirectTo, { replace: true });
+                                    await mockApi.loginWithGoogle();
                                 } finally {
                                     setLoading(false);
                                 }

@@ -5,6 +5,16 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getTournamentGridData, type TournamentCardData } from "@/lib/tournamentsApi";
 
+const getRegistrationLink = (tournament: TournamentCardData, mode: "create" | "join") => {
+  const params = new URLSearchParams({
+    tournamentId: tournament.id,
+    game: tournament.game,
+    mode,
+  });
+
+  return `/create-team?${params.toString()}`;
+};
+
 export const TournamentGrid = () => {
   const containerRef = useRef<HTMLElement>(null);
   const navigate = useNavigate();
@@ -92,11 +102,7 @@ export const TournamentGrid = () => {
                 transition={{ duration: 0.6 }}
                 whileHover={{ scale: 1.01 }}
                 className={`gpu-accelerated clip-panel glass-strong p-0 relative overflow-hidden group cursor-pointer border-l-[4px] border-primary`}
-                onClick={() =>
-                  navigate(
-                    `/create-team?tournamentId=${encodeURIComponent(tournament.id)}&game=${encodeURIComponent(tournament.game)}`
-                  )
-                }
+                onClick={() => navigate(getRegistrationLink(tournament, "create"))}
               >
                 <div className="grid grid-cols-1 md:grid-cols-12 h-full">
                   {/* Left Side: Game Image/Graphic Placeholder */}
@@ -168,6 +174,30 @@ export const TournamentGrid = () => {
                         />
                         <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-3 bg-white" />
                       </div>
+                    </div>
+
+                    <div className="mt-5 flex flex-col sm:flex-row gap-2">
+                      <Button
+                        size="sm"
+                        className="bg-toxic-green hover:bg-toxic-green/90 text-black font-semibold"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          navigate(getRegistrationLink(tournament, "create"));
+                        }}
+                      >
+                        Create Team
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-neon-cyan/60 text-neon-cyan hover:bg-neon-cyan/10"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          navigate(getRegistrationLink(tournament, "join"));
+                        }}
+                      >
+                        Join Team
+                      </Button>
                     </div>
                   </div>
                 </div>

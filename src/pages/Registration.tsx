@@ -25,6 +25,9 @@ export default function Registration() {
   const [searchParams] = useSearchParams();
   const selectedTournamentId = searchParams.get("tournamentId");
   const prefilledGame = searchParams.get("game");
+  const selectedMode = searchParams.get("mode");
+  const inviteCodeFromQuery = searchParams.get("inviteCode") || "";
+  const isJoinMode = selectedMode === "join";
   const initialGame = prefilledGame === "BGMI" || prefilledGame === "Free Fire" ? prefilledGame : "";
 
   const [step, setStep] = useState<Step>(initialGame ? "details" : "game");
@@ -40,6 +43,28 @@ export default function Registration() {
   const [leaderRollNo, setLeaderRollNo] = useState("");
   const [leaderUID, setLeaderUID] = useState("");
   const [teamLogo, setTeamLogo] = useState<string | null>(null);
+
+  // Join mode details (teammate self-fill)
+  const [inviteCode, setInviteCode] = useState(inviteCodeFromQuery.toUpperCase());
+  const [memberRollNo, setMemberRollNo] = useState("");
+  const [memberUID, setMemberUID] = useState("");
+
+  const createModeUrl = (() => {
+    const params = new URLSearchParams();
+    params.set("mode", "create");
+    if (selectedTournamentId) params.set("tournamentId", selectedTournamentId);
+    if (initialGame) params.set("game", initialGame);
+    return `/create-team?${params.toString()}`;
+  })();
+
+  const joinModeUrl = (() => {
+    const params = new URLSearchParams();
+    params.set("mode", "join");
+    if (selectedTournamentId) params.set("tournamentId", selectedTournamentId);
+    if (initialGame) params.set("game", initialGame);
+    if (inviteCode) params.set("inviteCode", inviteCode.trim().toUpperCase());
+    return `/create-team?${params.toString()}`;
+  })();
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -151,6 +176,57 @@ export default function Registration() {
     }
   };
 
+  const handleJoinTeam = async () => {
+    if (!inviteCode.trim()) {
+      toast({ title: "Invite Required", description: "Please enter the invite code", variant: "destructive" });
+      return;
+    }
+
+    if (!memberRollNo || !/^\d+$/.test(memberRollNo)) {
+      toast({ title: "Invalid Roll No", description: "Roll Number must be numeric.", variant: "destructive" });
+      return;
+    }
+
+    if (!memberUID || !/^\d+$/.test(memberUID)) {
+      toast({ title: "Invalid UID", description: "Game UID must be numeric.", variant: "destructive" });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const inviteTeam = await mockApi.getTeamByInviteCode(inviteCode.trim().toUpperCase());
+
+      if (inviteTeam.game === "BGMI" && memberUID.length > 15) {
+        throw new Error("BGMI UID cannot exceed 15 digits");
+      }
+
+      if (inviteTeam.game === "Free Fire" && memberUID.length > 12) {
+        throw new Error("Free Fire UID cannot exceed 12 digits");
+      }
+
+      await mockApi.joinTeamByInvite(inviteCode.trim().toUpperCase(), {
+        roll_no: memberRollNo,
+        uid: memberUID,
+        email: leaderEmail,
+      });
+
+      toast({
+        title: "Team Joined",
+        description: `You have joined ${inviteTeam.teamName}.`,
+      });
+
+      navigate("/dashboard");
+    } catch (error: any) {
+      toast({
+        title: "Join Failed",
+        description: error.message || "Could not join the team with this invite.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const clearFieldError = (field: keyof FormErrors) => {
     if (errors[field]) {
       const newErrors = { ...errors };
@@ -176,6 +252,104 @@ export default function Registration() {
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-4xl">
           
           <Card className="glass p-8 border-border/20 relative">
+            {isJoinMode ? (
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+                <h2 className="text-3xl font-black mb-2 text-gradient-primary">Join Existing Team</h2>
+                <p className="text-muted-foreground mb-8">
+                  Enter your team invite code and fill your own player details.
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                  <div className="glass rounded-xl p-6 border border-border/20 space-y-5">
+                    <div>
+                      <Label className="text-foreground mb-2 flex items-center gap-2">
+                        <Hash className="h-4 w-4 text-toxic-green" /> Invite Code *
+                      </Label>
+                      <Input
+                        value={inviteCode}
+                        onChange={(event) => setInviteCode(event.target.value.toUpperCase())}
+                        placeholder="AB12CD34"
+                        className="glass border-border/30 focus:border-toxic-green uppercase tracking-[0.15em]"
+                      />
+                      <span className="text-[10px] text-muted-foreground mt-1 block">
+                        Ask team leader for the invite code or invite link.
+                      </span>
+                    </div>
+
+                    <div>
+                      <Label className="text-foreground mb-2 flex items-center gap-2">
+                        <User className="h-4 w-4" /> Roll No *
+                      </Label>
+                      <Input
+                        value={memberRollNo}
+                        onChange={(event) => setMemberRollNo(event.target.value)}
+                        placeholder="Your Roll No"
+                        className="glass border-border/30 focus:border-toxic-green"
+                      />
+                    </div>
+
+                    <div>
+                      <Label className="text-foreground mb-2 flex items-center gap-2">
+                        <Hash className="h-4 w-4" /> Player UID *
+                      </Label>
+                      <Input
+                        value={memberUID}
+                        onChange={(event) => setMemberUID(event.target.value)}
+                        placeholder="Enter your Game UID"
+                        className="glass border-border/30 focus:border-toxic-green"
+                      />
+                    </div>
+
+                    <div>
+                      <Label className="text-foreground mb-2 flex items-center gap-2">
+                        <Mail className="h-4 w-4" /> Email Address
+                      </Label>
+                      <Input
+                        value={leaderEmail}
+                        disabled
+                        className="glass border-border/30 opacity-50 cursor-not-allowed h-10"
+                      />
+                      <span className="text-[10px] text-muted-foreground mt-1 block">Joined account email will be used</span>
+                    </div>
+                  </div>
+
+                  <div className="glass rounded-xl p-6 border border-border/20 flex flex-col justify-between">
+                    <div>
+                      <h3 className="text-xl font-black text-neon-cyan mb-3">Choose Your Path</h3>
+                      <p className="text-sm text-muted-foreground mb-6">
+                        Joining is for existing squads. If you want to lead your own squad, create a new team instead.
+                      </p>
+
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full mb-3 glass border-border/30"
+                        onClick={() => navigate(createModeUrl)}
+                      >
+                        Switch to Create Team
+                      </Button>
+
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="w-full"
+                        onClick={() => navigate(joinModeUrl)}
+                      >
+                        Refresh Invite Params
+                      </Button>
+                    </div>
+
+                    <Button
+                      onClick={handleJoinTeam}
+                      disabled={loading}
+                      className="w-full bg-toxic-green hover:bg-toxic-green/90 text-void-black font-bold h-12 mt-6"
+                    >
+                      {loading ? "JOINING..." : "JOIN TEAM"} <ArrowRight className="ml-2 h-5 w-5" />
+                    </Button>
+                  </div>
+                </div>
+              </motion.div>
+            ) : (
             <AnimatePresence mode="wait">
               {/* Step 1: Game Selection */}
               {step === "game" && (
@@ -375,6 +549,7 @@ export default function Registration() {
                 </motion.div>
               )}
             </AnimatePresence>
+            )}
           </Card>
         </motion.div>
       </div>

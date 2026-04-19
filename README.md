@@ -1,55 +1,50 @@
+# Hyper Arena
 
+Esports tournament registration app built with Vite, React, TypeScript, Tailwind, and Supabase.
 
-Follow these steps:
+## Local development
 
-
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+```bash
+npm ci
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## Production build
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```bash
+npm run build
+npm run preview
+```
 
-**Use GitHub Codespaces**
+## GitHub Pages deploy (cybersoulz.tech)
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+This repo uses GitHub Actions for deployment via [.github/workflows/deploy-pages.yml](.github/workflows/deploy-pages.yml).
 
-## What technologies are used for this project?
+### One-time GitHub setup
 
-This project is built with:
+1. Open repository Settings -> Pages.
+2. Set Source to GitHub Actions.
+3. Add Actions Variables in Settings -> Secrets and variables -> Actions:
+4. `VITE_SUPABASE_URL` = your Supabase project URL.
+5. `VITE_SUPABASE_PUBLISHABLE_KEY` = your Supabase publishable key.
+6. In Pages, set Custom domain to `cybersoulz.tech`.
+7. Enable Enforce HTTPS.
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### DNS setup for cybersoulz.tech
 
+1. Add A records for apex domain (`@`):
+2. `185.199.108.153`
+3. `185.199.109.153`
+4. `185.199.110.153`
+5. `185.199.111.153`
+6. Add a CNAME record for `www` pointing to `YOUR_GITHUB_USERNAME.github.io`.
 
+### Deploy flow
 
-## How can I deploy this project?
+1. Push to `main`.
+2. Workflow builds and deploys `dist` to GitHub Pages.
+3. A SPA fallback is generated as `404.html` so direct route refresh (like `/tournaments`) works.
 
-Simply open [Lovable](https://lovable.dev/projects/8504048f-e2a6-466a-987b-8755b4c35867) and click on Share -> Publish.
+### Optional manual deploy
 
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Run the workflow manually from Actions -> Deploy GitHub Pages -> Run workflow.

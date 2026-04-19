@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import confetti from "canvas-confetti";
-import { LogOut, Trophy, Crown, Shield, Users, ArrowRight, Gamepad2, AlertCircle, Plus, Check, Edit2, AlertTriangle, X, Upload, Image as ImageIcon, Trash2 } from "lucide-react";
+import { LogOut, Trophy, Crown, Shield, Users, ArrowRight, Gamepad2, AlertCircle, Plus, Check, Edit2, AlertTriangle, X, Upload, Image as ImageIcon, Trash2, Copy, Link2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,8 @@ export default function Dashboard() {
   const [teamData, setTeamData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [copiedState, setCopiedState] = useState<"code" | "link" | null>(null);
 
   // Management State
   const [newPlayer, setNewPlayer] = useState({ roll_no: "", email: "", uid: "" });
@@ -42,6 +44,7 @@ export default function Dashboard() {
           navigate("/auth");
           return;
         }
+        setCurrentUserId(user.uid);
 
         const team = await mockApi.getTeamByLeader(user.email ?? "");
         if (team) {
@@ -207,12 +210,42 @@ export default function Dashboard() {
     }
   };
 
+  const inviteCode = teamData?.inviteCode || "";
+  const inviteLink = (() => {
+    if (!inviteCode) return "";
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const params = new URLSearchParams({
+      mode: "join",
+      inviteCode,
+    });
+
+    if (teamData?.tournamentId) params.set("tournamentId", teamData.tournamentId);
+    if (teamData?.game) params.set("game", teamData.game);
+
+    return `${origin}/create-team?${params.toString()}`;
+  })();
+
+  const copyInviteValue = async (type: "code" | "link", value: string) => {
+    if (!value) return;
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopiedState(type);
+      toast({
+        title: type === "code" ? "Invite Code Copied" : "Invite Link Copied",
+        description: type === "code" ? "Share this code with your teammates." : "Share this link with your teammates.",
+      });
+      setTimeout(() => setCopiedState(null), 1500);
+    } catch {
+      toast({ title: "Copy Failed", description: "Could not copy to clipboard.", variant: "destructive" });
+    }
+  };
+
   if (loading) return <div className="min-h-screen flex items-center justify-center text-toxic-green">Loading Dashboard...</div>;
 
   if (!teamData) return (
     <div className="min-h-screen flex flex-col items-center justify-center">
       <h2 className="text-2xl mb-4">You don't have a team yet.</h2>
-      <Button onClick={() => navigate("/create-team")}>Create Team</Button>
+      <Button onClick={() => navigate("/tournaments")}>Go To Tournaments</Button>
     </div>
   );
 
@@ -368,6 +401,44 @@ export default function Dashboard() {
             )}
           </motion.div>
 
+          {inviteCode && currentUserId === teamData.user_id && teamData.status === "pending_players" && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="glass rounded-xl p-6 mb-8 border border-neon-cyan/40"
+            >
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                  <h3 className="text-xl font-black text-neon-cyan mb-1">Invite Teammates</h3>
+                  <p className="text-sm text-muted-foreground">Share invite code/link so teammates can fill their own details and join your roster.</p>
+                </div>
+                <div className="text-xs uppercase tracking-widest text-primary">Step 1: Build Roster</div>
+              </div>
+
+              <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="rounded-lg border border-border/40 bg-background/40 p-4">
+                  <Label className="text-xs text-muted-foreground">Invite Code</Label>
+                  <div className="mt-2 flex items-center gap-2">
+                    <Input value={inviteCode} readOnly className="font-mono tracking-[0.2em] uppercase" />
+                    <Button size="icon" variant="outline" onClick={() => copyInviteValue("code", inviteCode)}>
+                      {copiedState === "code" ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-border/40 bg-background/40 p-4">
+                  <Label className="text-xs text-muted-foreground">Invite Link</Label>
+                  <div className="mt-2 flex items-center gap-2">
+                    <Input value={inviteLink} readOnly className="text-xs" />
+                    <Button size="icon" variant="outline" onClick={() => copyInviteValue("link", inviteLink)}>
+                      {copiedState === "link" ? <Check className="h-4 w-4" /> : <Link2 className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
           {/* Pending Players State */}
           {teamData.status === 'pending_players' && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
@@ -448,7 +519,7 @@ export default function Dashboard() {
                                {substitute ? (
                                    <div className="text-sm text-muted-foreground bg-background/50 px-3 py-1 rounded text-left sm:text-right break-all flex items-center justify-between sm:justify-end gap-3 flex-1 sm:flex-none">
                                        <span>Roll No: {substitute.roll_no} | UID: {substitute.uid}</span>
-                                       {!isOpen && teamData.status === 'pending_players' && (
+                                     {activeFormSlot !== 3 && teamData.status === 'pending_players' && (
                                               <button onClick={() => { setNewPlayer(substitute); setActiveFormSlot(3); }} className="text-neon-cyan hover:text-white transition-colors p-1 bg-neon-cyan/10 rounded"><Edit2 className="h-3 w-3" /></button>
                                        )}
                                    </div>
