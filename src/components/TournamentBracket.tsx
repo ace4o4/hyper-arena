@@ -101,13 +101,13 @@ export const TournamentBracket = () => {
                       whileHover={{ x: 4 }}
                       className={`flex items-center justify-between p-3 rounded-lg mb-2 ${
                         match.player1.winner
-                          ? "bg-toxic-green/20 border-2 border-toxic-green shadow-[0_0_15px_rgba(0,255,157,0.3)]"
+                          ? "bg-primary/20 border-2 border-primary shadow-[0_0_15px_rgba(0,255,157,0.3)]"
                           : "bg-card/50"
                       }`}
                     >
                       <div className="flex items-center gap-2">
-                        {match.player1.winner && <Crown className="h-4 w-4 text-toxic-green" fill="currentColor" />}
-                        <span className={`font-bold ${match.player1.winner ? "text-toxic-green" : ""}`}>
+                        {match.player1.winner && <Crown className="h-4 w-4 text-primary" fill="currentColor" />}
+                        <span className={`font-bold ${match.player1.winner ? "text-primary" : ""}`}>
                           {match.player1.name}
                         </span>
                       </div>
@@ -126,13 +126,13 @@ export const TournamentBracket = () => {
                       whileHover={{ x: 4 }}
                       className={`flex items-center justify-between p-3 rounded-lg ${
                         match.player2.winner
-                          ? "bg-toxic-green/20 border-2 border-toxic-green shadow-[0_0_15px_rgba(0,255,157,0.3)]"
+                          ? "bg-primary/20 border-2 border-primary shadow-[0_0_15px_rgba(0,255,157,0.3)]"
                           : "bg-card/50"
                       }`}
                     >
                       <div className="flex items-center gap-2">
-                        {match.player2.winner && <Crown className="h-4 w-4 text-toxic-green" fill="currentColor" />}
-                        <span className={`font-bold ${match.player2.winner ? "text-toxic-green" : ""}`}>
+                        {match.player2.winner && <Crown className="h-4 w-4 text-primary" fill="currentColor" />}
+                        <span className={`font-bold ${match.player2.winner ? "text-primary" : ""}`}>
                           {match.player2.name}
                         </span>
                       </div>
@@ -159,10 +159,10 @@ export const TournamentBracket = () => {
           className="mt-16 flex justify-center"
         >
           <div className="glass rounded-2xl p-8 text-center max-w-md">
-            <Trophy className="h-16 w-16 text-toxic-green mx-auto mb-4 animate-float" />
+            <Trophy className="h-16 w-16 text-primary mx-auto mb-4 animate-float" />
             <h3 className="text-3xl font-black text-gradient-primary mb-2">Championship Winner</h3>
             <p className="text-muted-foreground mb-4">Match in progress...</p>
-            <div className="text-5xl font-black text-toxic-green">₹50,000</div>
+            <div className="text-5xl font-black text-primary">₹50,000</div>
           </div>
         </motion.div>
       </div>

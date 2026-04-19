@@ -15,6 +15,7 @@ const VerifyEmail = lazy(() => import("./pages/VerifyEmail"));
 const AdminPanel = lazy(() => import("./pages/AdminPanel"));
 const Leaderboard = lazy(() => import("./pages/Leaderboard"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const BroadcastOverlay = lazy(() => import("./pages/BroadcastOverlay"));
 
 // Sci-fi Gaming Loader
 const PageLoader = () => (
@@ -144,6 +145,7 @@ const App = () => (
           <Route path="/verified" element={<VerifyEmail />} />
           <Route path="/admin" element={<AdminPanel />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
+          <Route path="/overlay" element={<BroadcastOverlay />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

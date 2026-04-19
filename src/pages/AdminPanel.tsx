@@ -4,6 +4,7 @@ import {
   Shield, Lock, Target, Trophy, Zap, Plus, Minus,
   Trash2, RotateCcw, UserPlus, Crosshair, Wifi,
   ChevronRight, Pencil, Check, X, MapPin,
+  Monitor, ExternalLink, Copy, CheckCheck,
 } from 'lucide-react';
 import {
   Game, TeamData,
@@ -341,6 +342,74 @@ const TeamCard = ({ team, game }: { team: TeamData; game: Game }) => {
 };
 
 // ─────────────────────────────────────────
+// Broadcast Panel (OBS Overlay Launcher)
+// ─────────────────────────────────────────
+const BroadcastPanel = () => {
+  const [copiedGame, setCopiedGame] = useState<Game | null>(null);
+
+  const getUrl = (game: Game) => `${window.location.origin}/overlay?game=${game}`;
+
+  const openOverlay = (game: Game) => {
+    window.open(getUrl(game), `overlay_${game}`, 'width=1920,height=1080,menubar=no,toolbar=no,location=no,scrollbars=no');
+  };
+
+  const copyUrl = (game: Game) => {
+    navigator.clipboard.writeText(getUrl(game));
+    setCopiedGame(game);
+    setTimeout(() => setCopiedGame(null), 2000);
+  };
+
+  const games: { id: Game; label: string; icon: string; color: string }[] = [
+    { id: 'bgmi',     label: 'BGMI',      icon: '🎯', color: 'rgba(168,85,247,0.15)' },
+    { id: 'freefire', label: 'FREE FIRE', icon: '🔥', color: 'rgba(249,115,22,0.15)' },
+  ];
+
+  return (
+    <div className="mb-6 glass border border-white/10 p-4"
+      style={{ clipPath: 'polygon(0 0,calc(100% - 16px) 0,100% 16px,100% 100%,16px 100%,0 calc(100% - 16px))' }}>
+      <div className="flex items-center gap-2 mb-4">
+        <Monitor className="w-4 h-4 text-primary shrink-0" />
+        <h2 className="font-orbitron font-bold text-xs tracking-widest text-primary uppercase">OBS Broadcast Overlay</h2>
+        <span className="ml-auto text-[9px] uppercase tracking-widest text-muted-foreground">Copy URL → Paste in OBS Browser Source</span>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        {games.map(({ id, label, icon, color }) => (
+          <div key={id} className="border border-white/8 rounded-md overflow-hidden"
+            style={{ background: color }}>
+            {/* Game label */}
+            <div className="px-3 py-2 flex items-center gap-2 border-b border-white/8">
+              <span className="text-base leading-none">{icon}</span>
+              <span className="font-orbitron font-bold text-xs tracking-widest text-foreground">{label}</span>
+            </div>
+            {/* URL display */}
+            <div className="px-3 py-1.5 text-[9px] font-mono text-muted-foreground truncate border-b border-white/5">
+              {getUrl(id)}
+            </div>
+            {/* Action buttons */}
+            <div className="flex">
+              <motion.button whileTap={{ scale: 0.95 }}
+                onClick={() => copyUrl(id)}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2 text-[9px] font-bold uppercase tracking-widest text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all border-r border-white/8">
+                {copiedGame === id
+                  ? <><CheckCheck className="w-3 h-3 text-green-400" /><span className="text-green-400">Copied!</span></>
+                  : <><Copy className="w-3 h-3" /><span>Copy URL</span></>}
+              </motion.button>
+              <motion.button whileTap={{ scale: 0.95 }}
+                onClick={() => openOverlay(id)}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2 text-[9px] font-bold uppercase tracking-widest text-primary hover:bg-primary/10 transition-all">
+                <ExternalLink className="w-3 h-3" />
+                <span>Open</span>
+              </motion.button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────
 // Main Admin Panel
 // ─────────────────────────────────────────
 const AdminPanel = () => {
@@ -390,6 +459,10 @@ const AdminPanel = () => {
       </div>
 
       <div className="container mx-auto px-4 py-6 max-w-2xl">
+
+        {/* ── OBS Broadcast Overlay ── */}
+        <BroadcastPanel />
+
         {/* ── Game Tabs ── */}
         <div className="flex gap-2 mb-6">
           {(['bgmi','freefire'] as Game[]).map((g) => (

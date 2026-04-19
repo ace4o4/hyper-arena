@@ -12,6 +12,13 @@ interface Particle {
 export const ParticleBackground = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isVisible, setIsVisible] = useState(true);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   // Reduce particles on mobile for performance
   const getParticleCount = useCallback((width: number, height: number) => {
@@ -107,6 +114,8 @@ export const ParticleBackground = () => {
       cancelAnimationFrame(animationFrameId);
     };
   }, [isVisible, getParticleCount]);
+
+  if (isMobile) return null;
 
   return (
     <canvas

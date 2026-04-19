@@ -1,6 +1,6 @@
-// ─── localStorage-based Points Table API ───────────────────────────────────
-// No backend needed. Data persists in browser.
-// Switch to Firebase later by replacing these functions only.
+// ─── Server-synced Points Table API ─────────────────────────────────────────
+// Writes go to: localStorage (persistence) + Vite /api/pts (cross-process sync)
+// Reads come from: /api/pts (so OBS gets same data as admin browser)
 
 export type Game = 'bgmi' | 'freefire';
 
@@ -9,30 +9,44 @@ export interface TeamData {
   name: string;
   logo: string;
   kills: number;
-  placement_pts: number; // cumulative placement points across matches
-  wins: number;          // chicken dinner count
+  placement_pts: number;
+  wins: number;
   total: number;         // AUTO: kills + placement_pts
 }
 
-// ── Internal helpers ────────────────────────────────────────────────────────
+// ── Internal helpers ─────────────────────────────────────────────────────────
 
 const key = (game: Game) => `pts_${game}`;
+const API_BASE = '/api/pts';
 
-const SYNC_EVENT = 'pts_sync'; // custom event for same-tab reactivity
-
-const read = (game: Game): TeamData[] => {
+// Read from localStorage (local fast cache)
+const readLocal = (game: Game): TeamData[] => {
   try {
     const raw = localStorage.getItem(key(game));
     return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
+  } catch { return []; }
 };
 
-const write = (game: Game, teams: TeamData[]) => {
-  localStorage.setItem(key(game), JSON.stringify(teams));
-  // Notify all listeners in the same tab
-  window.dispatchEvent(new CustomEvent(SYNC_EVENT, { detail: game }));
+// Write to both localStorage AND the Vite server (so OBS can GET it)
+const write = async (game: Game, teams: TeamData[]) => {
+  const json = JSON.stringify(teams);
+  localStorage.setItem(key(game), json);
+
+  // Push to Vite in-memory store so OBS Browser Source can read it
+  try {
+    await fetch(`${API_BASE}?game=${game}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: json,
+    });
+  } catch { /* ignore if server not available */ }
+
+  // Notify same-tab listeners
+  window.dispatchEvent(new CustomEvent('pts_sync', { detail: game }));
+  // Notify other browser windows/tabs
+  try {
+    new BroadcastChannel('hyper_arena_pts').postMessage({ game });
+  } catch { /* ignore */ }
 };
 
 const sorted = (teams: TeamData[]) =>
@@ -43,34 +57,56 @@ const recalc = (t: Omit<TeamData, 'total'>): TeamData => ({
   total: t.kills + t.placement_pts,
 });
 
-// ── Public API ───────────────────────────────────────────────────────────────
+// ── Public API ────────────────────────────────────────────────────────────────
 
-/** Subscribe to live updates for a game. Returns unsubscribe fn. */
+/** Subscribe to live updates. Returns unsubscribe fn. */
 export const subscribeToTeams = (
   game: Game,
   cb: (teams: TeamData[]) => void
 ): (() => void) => {
-  const load = () => cb(sorted(read(game)));
-  load(); // initial call
 
+  // Read: prefer server (so OBS gets correct data), fall back to localStorage
+  const load = async () => {
+    try {
+      const res = await fetch(`${API_BASE}?game=${game}`, { cache: 'no-store' });
+      if (res.ok) {
+        const data: TeamData[] = await res.json();
+        cb(sorted(data));
+        // Sync to localStorage as cache
+        localStorage.setItem(key(game), JSON.stringify(data));
+        return;
+      }
+    } catch { /* server not up, fall through */ }
+    cb(sorted(readLocal(game)));
+  };
+
+  load(); // initial
+
+  // Same-tab event
   const onSyncEvent = (e: Event) => {
     if ((e as CustomEvent).detail === game) load();
   };
+  // Cross-tab storage event
   const onStorage = (e: StorageEvent) => {
     if (e.key === key(game)) load();
   };
 
-  window.addEventListener(SYNC_EVENT, onSyncEvent);
+  window.addEventListener('pts_sync', onSyncEvent);
   window.addEventListener('storage', onStorage);
+
+  // Poll every 1.5s (guarantees OBS always gets fresh data)
+  const pollInterval = setInterval(load, 1500);
+
   return () => {
-    window.removeEventListener(SYNC_EVENT, onSyncEvent);
+    window.removeEventListener('pts_sync', onSyncEvent);
     window.removeEventListener('storage', onStorage);
+    clearInterval(pollInterval);
   };
 };
 
 /** Add a brand-new team with all stats at 0 */
 export const addTeam = (game: Game, name: string, logo = '🎮') => {
-  const teams = read(game);
+  const teams = readLocal(game);
   const newTeam: TeamData = {
     id: `${Date.now()}`,
     name: name.trim(),
@@ -91,17 +127,17 @@ export const updateTeam = (
 ) => {
   write(
     game,
-    read(game).map((t) =>
+    readLocal(game).map((t) =>
       t.id === teamId ? recalc({ ...t, ...updates }) : t
     )
   );
 };
 
-/** +/- kills (1 kill = 1 pt in total) */
+/** +/- kills */
 export const addKill = (game: Game, teamId: string, delta: number) => {
   write(
     game,
-    read(game).map((t) => {
+    readLocal(game).map((t) => {
       if (t.id !== teamId) return t;
       const kills = Math.max(0, t.kills + delta);
       return recalc({ ...t, kills });
@@ -113,7 +149,7 @@ export const addKill = (game: Game, teamId: string, delta: number) => {
 export const addPlacement = (game: Game, teamId: string, delta: number) => {
   write(
     game,
-    read(game).map((t) => {
+    readLocal(game).map((t) => {
       if (t.id !== teamId) return t;
       const placement_pts = Math.max(0, t.placement_pts + delta);
       return recalc({ ...t, placement_pts });
@@ -121,11 +157,11 @@ export const addPlacement = (game: Game, teamId: string, delta: number) => {
   );
 };
 
-/** +/- win count (wins are display-only, not added to total) */
+/** +/- win count */
 export const addWin = (game: Game, teamId: string, delta = 1) => {
   write(
     game,
-    read(game).map((t) =>
+    readLocal(game).map((t) =>
       t.id === teamId
         ? { ...t, wins: Math.max(0, t.wins + delta) }
         : t
@@ -133,11 +169,11 @@ export const addWin = (game: Game, teamId: string, delta = 1) => {
   );
 };
 
-/** Reset a team's stats to all zeros */
+/** Reset a team's stats */
 export const resetTeam = (game: Game, teamId: string) => {
   write(
     game,
-    read(game).map((t) =>
+    readLocal(game).map((t) =>
       t.id === teamId
         ? { ...t, kills: 0, placement_pts: 0, wins: 0, total: 0 }
         : t
@@ -147,5 +183,5 @@ export const resetTeam = (game: Game, teamId: string) => {
 
 /** Permanently delete a team */
 export const deleteTeam = (game: Game, teamId: string) => {
-  write(game, read(game).filter((t) => t.id !== teamId));
+  write(game, readLocal(game).filter((t) => t.id !== teamId));
 };

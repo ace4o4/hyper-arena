@@ -30,8 +30,8 @@ export default function Registration() {
   const isJoinMode = selectedMode === "join";
   const initialGame = prefilledGame === "BGMI" || prefilledGame === "Free Fire" ? prefilledGame : "";
 
-  const [step, setStep] = useState<Step>(initialGame ? "details" : "game");
-  const [selectedGame, setSelectedGame] = useState(initialGame);
+  const [step, setStep] = useState<Step>("details");
+  const [selectedGame, setSelectedGame] = useState(initialGame || "BGMI");
   const navigate = useNavigate();
   const { toast } = useToast();
   const [errors, setErrors] = useState<FormErrors>({});
@@ -263,13 +263,13 @@ export default function Registration() {
                   <div className="glass rounded-xl p-6 border border-border/20 space-y-5">
                     <div>
                       <Label className="text-foreground mb-2 flex items-center gap-2">
-                        <Hash className="h-4 w-4 text-toxic-green" /> Invite Code *
+                        <Hash className="h-4 w-4 text-primary" /> Invite Code *
                       </Label>
                       <Input
                         value={inviteCode}
                         onChange={(event) => setInviteCode(event.target.value.toUpperCase())}
                         placeholder="AB12CD34"
-                        className="glass border-border/30 focus:border-toxic-green uppercase tracking-[0.15em]"
+                        className="glass border-border/30 focus:border-primary uppercase tracking-[0.15em]"
                       />
                       <span className="text-[10px] text-muted-foreground mt-1 block">
                         Ask team leader for the invite code or invite link.
@@ -284,7 +284,7 @@ export default function Registration() {
                         value={memberRollNo}
                         onChange={(event) => setMemberRollNo(event.target.value)}
                         placeholder="Your Roll No"
-                        className="glass border-border/30 focus:border-toxic-green"
+                        className="glass border-border/30 focus:border-primary"
                       />
                     </div>
 
@@ -296,7 +296,7 @@ export default function Registration() {
                         value={memberUID}
                         onChange={(event) => setMemberUID(event.target.value)}
                         placeholder="Enter your Game UID"
-                        className="glass border-border/30 focus:border-toxic-green"
+                        className="glass border-border/30 focus:border-primary"
                       />
                     </div>
 
@@ -342,7 +342,7 @@ export default function Registration() {
                     <Button
                       onClick={handleJoinTeam}
                       disabled={loading}
-                      className="w-full bg-toxic-green hover:bg-toxic-green/90 text-void-black font-bold h-12 mt-6"
+                      className="w-full bg-primary hover:bg-primary/90 text-void-black font-bold h-12 mt-6"
                     >
                       {loading ? "JOINING..." : "JOIN TEAM"} <ArrowRight className="ml-2 h-5 w-5" />
                     </Button>
@@ -351,69 +351,47 @@ export default function Registration() {
               </motion.div>
             ) : (
             <AnimatePresence mode="wait">
-              {/* Step 1: Game Selection */}
-              {step === "game" && (
-                <motion.div key="game" initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -50 }}>
-                  <h2 className="text-3xl font-black mb-2 text-gradient-primary">Select Your Game</h2>
-                  <p className="text-muted-foreground mb-8">Choose which game you want to compete in</p>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {["BGMI", "Free Fire"].map((game) => (
-                      <motion.div
-                        key={game}
-                        whileHover={{ scale: 1.05, y: -8 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => setSelectedGame(game)}
-                        className={`glass rounded-xl p-6 cursor-pointer border-2 transition-all relative ${selectedGame === game
-                          ? "border-toxic-green glow-primary bg-toxic-green/10"
-                          : "border-border/20 hover:border-toxic-green/50"
-                          }`}
-                      >
-                        <Gamepad2 className="h-12 w-12 text-toxic-green mb-4" />
-                        <h3 className="text-xl font-black mb-2">{game}</h3>
-                        <p className="text-sm text-muted-foreground">Battle Royale - Squad</p>
-                        {selectedGame === game && (
-                          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute top-4 right-4 h-6 w-6 rounded-full bg-toxic-green flex items-center justify-center">
-                            <Check className="h-4 w-4 text-void-black" />
-                          </motion.div>
-                        )}
-                      </motion.div>
-                    ))}
-                  </div>
-
-                  <Button
-                    onClick={() => selectedGame && setStep("details")}
-                    disabled={!selectedGame}
-                    className="w-full mt-8 bg-toxic-green hover:bg-toxic-green/90 text-void-black font-bold uppercase tracking-wider"
-                    size="lg"
-                  >
-                    Continue <ArrowRight className="ml-2 h-5 w-5" />
-                  </Button>
-                </motion.div>
-              )}
 
               {/* Step 2: Details */}
               {step === "details" && (
                 <motion.div key="details" initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -50 }}>
                   <h2 className="text-3xl font-black mb-2 text-gradient-primary">Create Your Team</h2>
-                  <p className="text-muted-foreground mb-8">Enter leader details and team name for {selectedGame}</p>
+                  <p className="text-muted-foreground mb-8">Enter leader details and select your game</p>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
                     {/* Left Column: Branding */}
                     <div className="space-y-6">
+                      <div className="flex gap-4">
+                        <Button
+                          type="button"
+                          onClick={() => setSelectedGame("BGMI")}
+                          className={`flex-1 font-bold ${selectedGame === "BGMI" ? "bg-primary text-black" : "glass text-foreground hover:bg-primary/20"}`}
+                        >
+                          BGMI
+                        </Button>
+                        <Button
+                          type="button"
+                          onClick={() => setSelectedGame("Free Fire")}
+                          className={`flex-1 font-bold ${selectedGame === "Free Fire" ? "bg-primary text-black" : "glass text-foreground hover:bg-primary/20"}`}
+                        >
+                          FREE FIRE
+                        </Button>
+                      </div>
+
                       <div className="glass rounded-xl p-6 border border-border/20">
                         <Label className="text-foreground mb-4 flex items-center gap-2">
-                          <ImageIcon className="h-4 w-4 text-toxic-green" /> Team Logo (Optional)
+                          <ImageIcon className="h-4 w-4 text-primary" /> Team Logo (Optional)
                         </Label>
                         <div 
-                          className="w-full h-48 rounded-xl border-2 border-dashed border-border/40 flex flex-col items-center justify-center cursor-pointer hover:border-toxic-green/50 transition-all bg-black/20 relative overflow-hidden group"
+                          className="w-full h-48 rounded-xl border-2 border-dashed border-border/40 flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 transition-all bg-black/20 relative overflow-hidden group"
                           onClick={() => document.getElementById('logo-upload')?.click()}
                         >
                           {teamLogo ? (
                             <img src={teamLogo} alt="Team Logo" className="w-full h-full object-contain p-2" />
                           ) : (
                             <>
-                              <Upload className="h-10 w-10 text-muted-foreground group-hover:text-toxic-green transition-colors mb-2" />
+                              <Upload className="h-10 w-10 text-muted-foreground group-hover:text-primary transition-colors mb-2" />
                               <span className="text-xs text-muted-foreground">UPLOAD TEAM EMBLEM</span>
                               <span className="text-[10px] text-muted-foreground/50 mt-1">PNG, JPG recommended</span>
                             </>
@@ -439,7 +417,7 @@ export default function Registration() {
 
                       <div className="glass rounded-xl p-6 border border-border/20">
                         <Label className="text-foreground mb-2 flex items-center gap-2">
-                          <Hash className="h-4 w-4 text-toxic-green" /> Team Name *
+                          <Hash className="h-4 w-4 text-primary" /> Team Name *
                         </Label>
                         <Input
                           value={teamName}
@@ -448,7 +426,7 @@ export default function Registration() {
                             clearFieldError('teamName');
                           }}
                           placeholder="Hyper Gladiators"
-                          className={`glass border-border/30 focus:border-toxic-green ${errors.teamName ? 'border-neon-red' : ''}`}
+                          className={`glass border-border/30 focus:border-primary ${errors.teamName ? 'border-neon-red' : ''}`}
                         />
                         <ErrorMessage message={errors.teamName} />
                       </div>
@@ -457,7 +435,7 @@ export default function Registration() {
                     {/* Right Column: Leader Info */}
                     <div className="space-y-6 flex flex-col justify-between">
                       <div className="glass rounded-xl p-6 border border-border/20 h-full">
-                        <h3 className="text-lg font-bold text-toxic-green mb-6 flex items-center gap-2">
+                        <h3 className="text-lg font-bold text-primary mb-6 flex items-center gap-2">
                           <Crown className="h-5 w-5" /> Leader Information
                         </h3>
                         <div className="space-y-4">
@@ -472,7 +450,7 @@ export default function Registration() {
                                 clearFieldError('leaderRollNo');
                               }}
                               placeholder="Your Roll No"
-                              className={`glass border-border/30 focus:border-toxic-green ${errors.leaderRollNo ? 'border-neon-red' : ''}`}
+                              className={`glass border-border/30 focus:border-primary ${errors.leaderRollNo ? 'border-neon-red' : ''}`}
                             />
                             <ErrorMessage message={errors.leaderRollNo} />
                           </div>
@@ -487,7 +465,7 @@ export default function Registration() {
                                 clearFieldError('leaderUID');
                               }}
                               placeholder={`Game ID (${selectedGame === "BGMI" ? "15" : "12"} digits)`}
-                              className={`glass border-border/30 focus:border-toxic-green ${errors.leaderUID ? 'border-neon-red' : ''}`}
+                              className={`glass border-border/30 focus:border-primary ${errors.leaderUID ? 'border-neon-red' : ''}`}
                             />
                             <ErrorMessage message={errors.leaderUID} />
                           </div>
@@ -508,11 +486,10 @@ export default function Registration() {
                   </div>
                   
                   <div className="flex gap-4">
-                    <Button onClick={() => setStep("game")} variant="outline" className="flex-1 glass border-border/30">Back</Button>
                     <Button
                       onClick={handleSubmit}
                       disabled={loading}
-                      className="flex-1 bg-toxic-green hover:bg-toxic-green/90 text-void-black font-bold h-12"
+                      className="flex-1 bg-primary hover:bg-primary/90 text-void-black font-bold h-12"
                     >
                       {loading ? "INITIALIZING..." : "CONFIRM & CREATE TEAM"} <ArrowRight className="ml-2 h-5 w-5" />
                     </Button>
@@ -532,16 +509,16 @@ export default function Registration() {
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ type: "spring", bounce: 0.5 }}
-                    className="h-24 w-24 rounded-full bg-toxic-green/20 border-2 border-toxic-green flex items-center justify-center mx-auto mb-6"
+                    className="h-24 w-24 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center mx-auto mb-6"
                     style={{
-                      boxShadow: "0 0 40px hsl(var(--toxic-green) / 0.5)"
+                      boxShadow: "0 0 40px hsl(var(--primary) / 0.5)"
                     }}
                   >
-                    <Check className="h-12 w-12 text-toxic-green" />
+                    <Check className="h-12 w-12 text-primary" />
                   </motion.div>
                   <h2 className="text-4xl font-black mb-4 text-gradient-primary">
                     <span className="text-white">Team </span>
-                    <span className="text-toxic-green" style={{ textShadow: "0 0 20px hsl(var(--toxic-green)/0.8)" }}>{teamName}</span>
+                    <span className="text-primary" style={{ textShadow: "0 0 20px hsl(var(--primary)/0.8)" }}>{teamName}</span>
                   </h2>
                   <p className="text-xl text-muted-foreground mb-8">
                     Has successfully been created! Redirecting to Dashboard...

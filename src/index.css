@@ -32,56 +32,56 @@ All colors MUST be HSL.
 @layer base {
   :root {
     /* Cyberpunk Dark Theme */
-    --background: 220 15% 2%;
-    --foreground: 0 0% 88%;
+    --background: 240 10% 4%;
+    --foreground: 214 32% 91%;
 
-    --card: 220 15% 4%;
-    --card-foreground: 0 0% 88%;
+    --card: 240 16% 9%;
+    --card-foreground: 214 32% 91%;
 
-    --popover: 220 15% 3%;
-    --popover-foreground: 0 0% 88%;
+    --popover: 240 16% 9%;
+    --popover-foreground: 214 32% 91%;
 
-    /* Neon Toxic Green - Primary Action */
-    --primary: 158 100% 50%;
-    --primary-foreground: 220 15% 2%;
+    /* Electric Indigo/Violet - Primary Action */
+    --primary: 260 100% 65%;
+    --primary-foreground: 240 10% 4%;
 
     /* Glass Surface */
-    --secondary: 0 0% 100%;
-    --secondary-foreground: 220 15% 2%;
+    --secondary: 240 16% 15%;
+    --secondary-foreground: 214 32% 91%;
 
-    --muted: 220 15% 15%;
-    --muted-foreground: 0 0% 65%;
+    --muted: 240 16% 15%;
+    --muted-foreground: 215 25% 65%;
 
     /* Neon Cyan Accent */
-    --accent: 192 100% 42%;
-    --accent-foreground: 220 15% 2%;
+    --accent: 184 100% 50%;
+    --accent-foreground: 240 10% 4%;
 
-    /* Neon Red - Live/Danger */
-    --destructive: 340 100% 66%;
-    --destructive-foreground: 0 0% 98%;
+    /* Admin/Danger */
+    --destructive: 331 100% 50%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 100%;
-    --input: 0 0% 100%;
-    --ring: 158 100% 50%;
+    --border: 240 4% 16%;
+    --input: 240 4% 16%;
+    --ring: 260 100% 65%;
 
     --radius: 0.75rem;
 
     /* Custom Cyberpunk Colors */
     --cyber-purple: 277 100% 45%;
-    --neon-cyan: 192 100% 42%;
-    --toxic-green: 158 100% 50%;
-    --neon-red: 340 100% 66%;
-    --void-black: 220 15% 2%;
+    --neon-cyan: 184 100% 50%;
+    --toxic-green: 111 100% 54%;
+    --neon-red: 331 100% 50%;
+    --void-black: 240 10% 4%;
 
     /* Glow Effects */
-    --glow-primary: 0 0 20px hsl(158 100% 50% / 0.5);
-    --glow-accent: 0 0 20px hsl(192 100% 42% / 0.5);
-    --glow-danger: 0 0 20px hsl(340 100% 66% / 0.5);
+    --glow-primary: 0 0 20px hsl(260 100% 65% / 0.5);
+    --glow-accent: 0 0 20px hsl(184 100% 50% / 0.5);
+    --glow-danger: 0 0 20px hsl(331 100% 50% / 0.5);
 
     /* Glass Effects */
-    --glass-bg: rgba(20, 20, 25, 0.7);
+    --glass-bg: rgba(255, 255, 255, 0.05);
     /* More opaque for better performance fallback */
-    --glass-border: rgba(255, 255, 255, 0.1);
+    --glass-border: #27272A;
     --glass-blur: 12px;
 
     --sidebar-background: 0 0% 98%;
@@ -458,7 +458,7 @@ All colors MUST be HSL.
   }
 
   .text-gradient-primary {
-    @apply bg-gradient-to-r from-toxic-green to-neon-cyan bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent;
   }
 
   .text-gradient-cyber {
@@ -842,5 +842,16 @@ All colors MUST be HSL.
     background: currentColor;
     transform: rotate(45deg);
     transform-origin: left center;
+  }
+
+  /* --- OBS Broadcast Overlay --- */
+  body.obs-mode {
+    background: transparent !important;
+    background-image: none !important;
+  }
+
+  body.obs-mode #root {
+    background: transparent !important;
+    background-image: none !important;
   }
 }
