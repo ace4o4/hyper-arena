@@ -124,15 +124,7 @@ export const TournamentGrid = () => {
                       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5" />
                     </div>
 
-                    {/* Live Badge */}
-                    {tournament.isLive && (
-                      <motion.div className="absolute top-0 right-0 flex items-center gap-2 bg-destructive/20 backdrop-blur-sm px-4 py-2 clip-data-panel">
-                        <motion.div animate={{ opacity: [1, 0.2, 1] }} transition={{ duration: 1, repeat: Infinity }}>
-                          <CircleDot className="h-3 w-3 text-destructive" />
-                        </motion.div>
-                        <span className="text-xs font-bold text-destructive uppercase tracking-wider">Live Match</span>
-                      </motion.div>
-                    )}
+
 
                     {/* Title */}
                     <h3 className="text-3xl font-black mb-6 group-hover:text-shadow-glow transition-all duration-300">
@@ -158,28 +150,12 @@ export const TournamentGrid = () => {
                       ))}
                     </div>
 
-                    {/* Minimalist HP-Style Progress Bar */}
-                    <div className="mb-0 mt-auto">
-                      <div className="flex justify-between text-xs font-mono mb-2 uppercase text-muted-foreground">
-                        <span>Registration Capacity</span>
-                        <span className="font-bold text-white">{tournament.filled} / {tournament.slots}</span>
-                      </div>
-                      <div className="relative h-[2px] bg-white/10 w-full mb-1">
-                        <motion.div 
-                          className="absolute top-0 left-0 bottom-0 bg-primary"
-                          initial={{ width: 0 }}
-                          whileInView={{ width: `${fillPercentage}%` }}
-                          viewport={{ once: true }}
-                          transition={{ duration: 1, delay: 0.5 }}
-                        />
-                        <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-3 bg-white" />
-                      </div>
-                    </div>
+
 
                     <div className="mt-5 flex flex-col sm:flex-row gap-2">
                       <Button
                         size="sm"
-                        className="bg-toxic-green hover:bg-toxic-green/90 text-black font-semibold"
+                        className="bg-primary hover:bg-primary/90 text-black font-semibold"
                         onClick={(event) => {
                           event.stopPropagation();
                           navigate(getRegistrationLink(tournament, "create"));

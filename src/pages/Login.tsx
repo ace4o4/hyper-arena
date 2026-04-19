@@ -109,7 +109,7 @@ export default function Login() {
                         <Tabs defaultValue="signin" className="w-full">
                             <TabsList className="grid w-full grid-cols-2 mb-6 glass">
                                 <TabsTrigger value="signin" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary font-bold">Sign In</TabsTrigger>
-                                <TabsTrigger value="signup" className="data-[state=active]:bg-toxic-green/20 data-[state=active]:text-toxic-green font-bold">Sign Up</TabsTrigger>
+                                <TabsTrigger value="signup" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary font-bold">Sign Up</TabsTrigger>
                             </TabsList>
 
                             {/* SIGN IN TAB */}
@@ -171,7 +171,7 @@ export default function Login() {
                                                 value={email}
                                                 onChange={(e) => setEmail(e.target.value)}
                                                 required
-                                                className="pl-10 glass border-border/30 focus:border-toxic-green"
+                                                className="pl-10 glass border-border/30 focus:border-primary"
                                             />
                                         </div>
                                     </div>
@@ -187,7 +187,7 @@ export default function Login() {
                                                 value={password}
                                                 onChange={(e) => setPassword(e.target.value)}
                                                 required
-                                                className="pl-10 glass border-border/30 focus:border-toxic-green"
+                                                className="pl-10 glass border-border/30 focus:border-primary"
                                             />
                                         </div>
                                     </div>
@@ -195,7 +195,7 @@ export default function Login() {
                                     <Button
                                         type="submit"
                                         disabled={loading}
-                                        className="w-full bg-toxic-green hover:bg-toxic-green/90 text-void-black font-bold"
+                                        className="w-full bg-primary hover:bg-primary/90 text-void-black font-bold"
                                     >
                                         {loading ? "Creating Account..." : "Create New Account"} <UserPlus className="ml-2 h-4 w-4" />
                                     </Button>

@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Zap, ChevronDown } from "lucide-react";
 import heroBg from "@/assets/hero-bg.jpg";
 import { useNavigate } from "react-router-dom";
-import { useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 
 export const Hero = () => {
   const navigate = useNavigate();
@@ -12,6 +12,14 @@ export const Hero = () => {
     target: containerRef,
     offset: ["start start", "end start"]
   });
+
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   const bgY = useTransform(scrollYProgress, [0, 1], ["0%", "30%"]);
   const contentY = useTransform(scrollYProgress, [0, 1], ["0%", "20%"]);
@@ -22,7 +30,7 @@ export const Hero = () => {
     <section ref={containerRef} className="relative min-h-screen flex items-center justify-center overflow-hidden pt-32">
       {/* Multi-layer Parallax Background with blur */}
       <motion.div
-        style={{ y: bgY }}
+        style={isMobile ? {} : { y: bgY }}
         className="absolute inset-0 z-0 gpu-accelerated"
       >
         <div
@@ -67,7 +75,7 @@ export const Hero = () => {
 
       {/* Content with Parallax — Asymmetrical Layout */}
       <motion.div
-        style={{ y: contentY, opacity, scale }}
+        style={isMobile ? {} : { y: contentY, opacity, scale }}
         className="container mx-auto px-4 z-10 gpu-accelerated grid grid-cols-1 lg:grid-cols-12 items-center gap-8"
       >
         {/* Left Side — Abstract Structural "Mech" or Graphic */}
@@ -130,12 +138,8 @@ export const Hero = () => {
                   }}
                 >
                   <span
-                    className="relative z-10 animate-text-shine"
-                    style={{
-                      background: 'linear-gradient(135deg, hsl(var(--toxic-green)) 0%, #fff 50%, hsl(var(--neon-cyan)) 100%)',
-                      WebkitBackgroundClip: 'text',
-                      WebkitTextFillColor: 'transparent',
-                    }}
+                    className="relative z-10 glitch-text text-white drop-shadow-[0_0_15px_hsl(var(--primary)/0.5)]"
+                    data-text={word}
                   >
                     {word}
                   </span>

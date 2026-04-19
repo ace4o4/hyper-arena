@@ -240,7 +240,7 @@ export default function Dashboard() {
     }
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center text-toxic-green">Loading Dashboard...</div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center text-primary">Loading Dashboard...</div>;
 
   if (!teamData) return (
     <div className="min-h-screen flex flex-col items-center justify-center">
@@ -265,10 +265,10 @@ export default function Dashboard() {
                     className="fixed inset-0 z-50 flex items-center justify-center bg-background/90 backdrop-blur-sm p-4"
                 >
                     <div className="text-center w-full max-w-lg">
-                        <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-toxic-green/20 border-4 border-toxic-green flex items-center justify-center mx-auto mb-4 sm:mb-6">
-                            <Check className="h-12 w-12 sm:h-16 sm:w-16 text-toxic-green animate-bounce" />
+                        <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-primary/20 border-4 border-primary flex items-center justify-center mx-auto mb-4 sm:mb-6">
+                            <Check className="h-12 w-12 sm:h-16 sm:w-16 text-primary animate-bounce" />
                         </div>
-                        <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-toxic-green mb-2 sm:mb-4 break-words" style={{ textShadow: "0 0 30px hsl(var(--toxic-green))" }}>CONGRATULATIONS!</h2>
+                        <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-primary mb-2 sm:mb-4 break-words" style={{ textShadow: "0 0 30px hsl(var(--primary))" }}>CONGRATULATIONS!</h2>
                         <p className="text-base sm:text-lg md:text-2xl text-white px-2">Your squad is officially registered for the tournament.</p>
                     </div>
                 </motion.div>
@@ -307,7 +307,7 @@ export default function Dashboard() {
             </Button>
           </div>
 
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass rounded-xl p-6 mb-8 border border-toxic-green/30">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass rounded-xl p-6 mb-8 border border-primary/30">
             {isEditingTeam ? (
               <div className="space-y-4">
                  <div className="flex justify-between items-center mb-4">
@@ -341,30 +341,30 @@ export default function Dashboard() {
                              <Trash2 className="h-4 w-4 mr-2" /> Remove Logo
                            </Button>
                          )}
-                         <Button onClick={handleSaveTeamEdit} className="bg-toxic-green text-black hover:bg-toxic-green/80">Save Changes</Button>
+                         <Button onClick={handleSaveTeamEdit} className="bg-primary text-black hover:bg-primary/80">Save Changes</Button>
                       </div>
               </div>
             ) : (
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-4">
                 <div 
-                  className="w-16 h-16 rounded-xl bg-toxic-green/20 border border-toxic-green/30 flex items-center justify-center relative group cursor-pointer overflow-hidden"
+                  className="w-16 h-16 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center relative group cursor-pointer overflow-hidden"
                   onClick={() => document.getElementById('dash-logo-upload')?.click()}
                 >
                   {teamData.logo ? (
                     <img src={teamData.logo} alt="Logo" className="w-full h-full object-cover" />
                   ) : (
-                    <Shield className="h-8 w-8 text-toxic-green" />
+                    <Shield className="h-8 w-8 text-primary" />
                   )}
                   
                   {/* Badge Indicator */}
-                  <div className="absolute bottom-0 right-0 bg-toxic-green p-1 rounded-tl-lg shadow-[0_0_10px_rgba(var(--toxic-green),0.5)]">
+                  <div className="absolute bottom-0 right-0 bg-primary p-1 rounded-tl-lg shadow-[0_0_10px_rgba(var(--primary),0.5)]">
                     <Upload className="h-2 w-2 text-void-black" />
                   </div>
 
                   {/* Hover Overlay */}
                   <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center">
-                    <Upload className="h-5 w-5 text-toxic-green mb-1" />
+                    <Upload className="h-5 w-5 text-primary mb-1" />
                     <span className="text-[8px] text-white font-bold uppercase">Update Logo</span>
                   </div>
                   <input 
@@ -393,7 +393,7 @@ export default function Dashboard() {
                 </div>
               </div>
               <div>
-                <span className={`px-4 py-1 rounded-full text-xs font-bold ${teamData.status === 'confirmed' ? 'bg-toxic-green text-black' : 'bg-neon-red/20 text-neon-red'}`}>
+                <span className={`px-4 py-1 rounded-full text-xs font-bold ${teamData.status === 'confirmed' ? 'bg-primary text-black' : 'bg-neon-red/20 text-neon-red'}`}>
                   {teamData.status.replace('_', ' ').toUpperCase()}
                 </span>
               </div>
@@ -447,9 +447,9 @@ export default function Dashboard() {
                  <p className="text-muted-foreground flex items-center gap-2 mb-6"><AlertCircle className="h-4 w-4"/> Add minimum 3 players to proceed.</p>
                  
                  <div className="space-y-4 max-w-2xl mx-auto">
-                        <div className="glass p-4 rounded-xl border border-toxic-green/30 flex justify-between items-center bg-toxic-green/5">
-                            <div className="flex items-center"><Crown className="w-5 h-5 mr-3 text-toxic-green"/> <span className="font-bold">Leader (You)</span></div>
-                            <Check className="text-toxic-green w-5 h-5"/>
+                        <div className="glass p-4 rounded-xl border border-primary/30 flex justify-between items-center bg-primary/5">
+                            <div className="flex items-center"><Crown className="w-5 h-5 mr-3 text-primary"/> <span className="font-bold">Leader (You)</span></div>
+                            <Check className="text-primary w-5 h-5"/>
                         </div>
                         
                         {[0,1,2].map((i) => {
@@ -500,7 +500,7 @@ export default function Dashboard() {
                                         </div>
                                         <div className="col-span-1 sm:col-span-3 flex flex-col-reverse sm:flex-row justify-end gap-2 mt-2 sm:mt-4">
                                             <Button size="sm" variant="ghost" className="w-full sm:w-auto" onClick={() => { setActiveFormSlot(null); setNewPlayer({roll_no:'', email:'', uid:''}); }}>Cancel</Button>
-                                            <Button size="sm" className="w-full sm:w-auto bg-toxic-green text-black hover:bg-toxic-green/80" onClick={() => handleAddPlayer(false)}>Save Player</Button>
+                                            <Button size="sm" className="w-full sm:w-auto bg-primary text-black hover:bg-primary/80" onClick={() => handleAddPlayer(false)}>Save Player</Button>
                                         </div>
                                    </div>
                                  </motion.div>
@@ -552,7 +552,7 @@ export default function Dashboard() {
                                         </div>
                                         <div className="col-span-1 sm:col-span-3 flex flex-col-reverse sm:flex-row justify-end gap-2 mt-2 sm:mt-4">
                                             <Button size="sm" variant="ghost" className="w-full sm:w-auto" onClick={() => { setActiveFormSlot(null); setNewPlayer({roll_no:'', email:'', uid:''}); }}>Cancel</Button>
-                                            <Button size="sm" className="w-full sm:w-auto bg-toxic-green text-black hover:bg-toxic-green/80" onClick={() => handleAddPlayer(true)}>Save Substitute</Button>
+                                            <Button size="sm" className="w-full sm:w-auto bg-primary text-black hover:bg-primary/80" onClick={() => handleAddPlayer(true)}>Save Substitute</Button>
                                         </div>
                                    </div>
                                  </motion.div>
@@ -566,7 +566,7 @@ export default function Dashboard() {
                      <Button 
                          disabled={players.length < 3 || loading} 
                          onClick={() => setShowConfirmModal(true)}
-                         className={`font-bold px-8 whitespace-nowrap ${players.length >= 3 ? 'bg-toxic-green text-black hover:bg-toxic-green/80' : 'bg-muted text-muted-foreground'}`}
+                         className={`font-bold px-8 whitespace-nowrap ${players.length >= 3 ? 'bg-primary text-black hover:bg-primary/80' : 'bg-muted text-muted-foreground'}`}
                      >
                         Confirm Roster & Pay <ArrowRight className="ml-2 w-4 h-4"/>
                      </Button>
@@ -578,15 +578,15 @@ export default function Dashboard() {
           {/* Payment Pending State */}
           {teamData.status === 'payment_pending' && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-center">
-                 <Card className="glass p-8 max-w-md w-full border-toxic-green/30 text-center">
-                    <Trophy className="h-16 w-16 text-toxic-green mx-auto mb-4" />
+                 <Card className="glass p-8 max-w-md w-full border-primary/30 text-center">
+                    <Trophy className="h-16 w-16 text-primary mx-auto mb-4" />
                     <h2 className="text-2xl font-black mb-2">Tournament Entry Fee</h2>
                     <p className="text-muted-foreground mb-6">Complete payment to finalize your squad's registration for {teamData.game}</p>
-                    <div className="text-4xl font-black text-toxic-green mb-8">₹299</div>
+                    <div className="text-4xl font-black text-primary mb-8">₹100</div>
                     <Button 
                         disabled={isProcessingPayment} 
                         onClick={handlePayment} 
-                        className="w-full bg-toxic-green hover:bg-toxic-green/80 text-black font-bold h-12 text-lg"
+                        className="w-full bg-primary hover:bg-primary/80 text-black font-bold h-12 text-lg"
                     >
                         {isProcessingPayment ? "Processing..." : "Pay Now"}
                     </Button>
@@ -598,10 +598,10 @@ export default function Dashboard() {
           {teamData.status === 'confirmed' && (
             <Tabs defaultValue="tickets" className="space-y-6">
                 <TabsList className="glass">
-                <TabsTrigger value="tickets" className="data-[state=active]:bg-toxic-green/20 data-[state=active]:text-toxic-green">
+                <TabsTrigger value="tickets" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
                     QR Tickets
                 </TabsTrigger>
-                <TabsTrigger value="tournament" className="data-[state=active]:bg-toxic-green/20 data-[state=active]:text-toxic-green">
+                <TabsTrigger value="tournament" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
                     Overview
                 </TabsTrigger>
                 </TabsList>
@@ -610,13 +610,13 @@ export default function Dashboard() {
                 <TabsContent value="tickets">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {/* Leader Ticket */}
-                    <div className="glass rounded-xl p-6 border-2 border-toxic-green/30 relative overflow-hidden flex flex-col items-center ticket-bg">
-                        <div className="absolute top-0 right-0 bg-toxic-green text-void-black text-xs font-bold px-3 py-1 rounded-bl-lg">LEADER</div>
-                        <div className="w-12 h-12 rounded-lg bg-toxic-green/10 border border-toxic-green/30 flex items-center justify-center mb-2 overflow-hidden">
+                    <div className="glass rounded-xl p-6 border-2 border-primary/30 relative overflow-hidden flex flex-col items-center ticket-bg">
+                        <div className="absolute top-0 right-0 bg-primary text-void-black text-xs font-bold px-3 py-1 rounded-bl-lg">LEADER</div>
+                        <div className="w-12 h-12 rounded-lg bg-primary/10 border border-primary/30 flex items-center justify-center mb-2 overflow-hidden">
                            {teamData.logo ? (
                              <img src={teamData.logo} alt="Team Logo" className="w-full h-full object-cover" />
                            ) : (
-                             <Shield className="h-6 w-6 text-toxic-green" />
+                             <Shield className="h-6 w-6 text-primary" />
                            )}
                         </div>
                         <h4 className="font-bold text-lg">{teamData.leader.name}</h4>
@@ -624,7 +624,7 @@ export default function Dashboard() {
                         <div className="p-2 bg-white rounded-lg mb-4">
                             <QRCodeSVG value={`HYPER-${teamData.leader.uid}-L`} size={150} />
                         </div>
-                        <p className="text-xs font-bold tracking-widest text-toxic-green">{teamData.game} SQUAD</p>
+                        <p className="text-xs font-bold tracking-widest text-primary">{teamData.game} SQUAD</p>
                     </div>
 
                     {/* Member Tickets */}
@@ -657,13 +657,13 @@ export default function Dashboard() {
                 </TabsContent>
 
                 <TabsContent value="tournament">
-                    <div className="glass p-6 rounded-xl border border-toxic-green/30">
+                    <div className="glass p-6 rounded-xl border border-primary/30">
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                             <div>
-                                <h3 className="text-2xl font-black text-toxic-green">Tournament Status: REGISTERED</h3>
+                                <h3 className="text-2xl font-black text-primary">Tournament Status: REGISTERED</h3>
                                 <p className="text-muted-foreground">Stay tuned on Discord for matchmaking and lobby details. Keep your QR tickets handy for verification.</p>
                             </div>
-                            <Button variant="outline" className="border-toxic-green/50 text-toxic-green hover:bg-toxic-green hover:text-black">Join Discord</Button>
+                            <Button variant="outline" className="border-primary/50 text-primary hover:bg-primary hover:text-black">Join Discord</Button>
                         </div>
                         
                         <div className="border-t border-border/50 pt-6 mt-6">
@@ -671,7 +671,7 @@ export default function Dashboard() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="p-4 bg-background/50 rounded-lg border border-border/50 flex flex-col gap-1 items-start relative overflow-hidden">
                                      {teamData.logo && <img src={teamData.logo} alt="Logo" className="absolute top-0 right-0 w-16 h-16 opacity-10 grayscale" />}
-                                    <span className="text-xs text-toxic-green font-bold">LEADER</span>
+                                    <span className="text-xs text-primary font-bold">LEADER</span>
                                     <span className="font-medium text-lg">{teamData.leader.name}</span>
                                     <span className="text-sm text-muted-foreground">UID: {teamData.leader.uid} | Roll: {teamData.leader.roll_no}</span>
                                 </div>

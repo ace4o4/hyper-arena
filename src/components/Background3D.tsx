@@ -17,7 +17,7 @@ export const Background3D = () => {
           background: `
             radial-gradient(ellipse 80% 50% at 50% 0%, hsl(var(--cyber-purple) / 0.25) 0%, transparent 50%),
             radial-gradient(ellipse 60% 40% at 80% 100%, hsl(var(--neon-cyan) / 0.15) 0%, transparent 50%),
-            radial-gradient(ellipse 50% 30% at 10% 60%, hsl(var(--toxic-green) / 0.1) 0%, transparent 50%),
+            radial-gradient(ellipse 50% 30% at 10% 60%, hsl(var(--primary) / 0.1) 0%, transparent 50%),
             linear-gradient(180deg, hsl(var(--background)) 0%, hsl(var(--void-black)) 100%)
           `,
         }}
@@ -26,7 +26,7 @@ export const Background3D = () => {
       {/* Animated gradient orbs */}
       <motion.div
         style={{ rotateZ: rotate1 }}
-        className="absolute -top-1/4 -left-1/4 w-[600px] h-[600px] rounded-full opacity-30"
+        className="hidden md:block absolute -top-1/4 -left-1/4 w-[600px] h-[600px] rounded-full opacity-30"
       >
         <div
           className="w-full h-full rounded-full blur-[40px] md:blur-[80px]"
@@ -38,7 +38,7 @@ export const Background3D = () => {
 
       <motion.div
         style={{ rotateZ: rotate2 }}
-        className="absolute -bottom-1/4 -right-1/4 w-[700px] h-[700px] rounded-full opacity-25"
+        className="hidden md:block absolute -bottom-1/4 -right-1/4 w-[700px] h-[700px] rounded-full opacity-25"
       >
         <div
           className="w-full h-full rounded-full blur-[50px] md:blur-[100px]"
@@ -62,8 +62,8 @@ export const Background3D = () => {
             transform: 'rotateX(60deg)',
             transformOrigin: 'top',
             backgroundImage: `
-              linear-gradient(to right, hsl(var(--toxic-green) / 0.3) 1px, transparent 1px),
-              linear-gradient(to bottom, hsl(var(--toxic-green) / 0.3) 1px, transparent 1px)
+              linear-gradient(to right, hsl(var(--primary) / 0.3) 1px, transparent 1px),
+              linear-gradient(to bottom, hsl(var(--primary) / 0.3) 1px, transparent 1px)
             `,
             backgroundSize: '60px 60px',
             maskImage: 'linear-gradient(to top, black 0%, transparent 100%)',
