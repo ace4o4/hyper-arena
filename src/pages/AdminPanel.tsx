@@ -164,6 +164,7 @@ const TeamCard = ({
 }: {
   team: TeamData;
   game: Game;
+  // Instantly patches admin UI — OBS overlay reads independently from Supabase
   onOptimisticUpdate: (teamId: string, patch: Partial<TeamData>) => void;
 }) => {
   const [editMode, setEditMode] = useState(false);
@@ -292,11 +293,9 @@ const TeamCard = ({
               icon={<Target className="w-3 h-3"/>}
               value={team.kills}
               onUpdate={(v) => {
-                const newKills = Math.max(0, v);
-                // Optimistic: update UI instantly
-                onOptimisticUpdate(team.id, { kills: newKills, total: newKills + team.placement_pts });
-                // Background: persist to Supabase
-                setKills(game, team.id, newKills);
+                const val = Math.max(0, v);
+                onOptimisticUpdate(team.id, { kills: val, total: val + team.placement_pts });
+                setKills(game, team.id, val); // saves to Supabase in background
               }}
             />
             <StatControl
@@ -305,9 +304,9 @@ const TeamCard = ({
               value={team.placement_pts}
               colorClass="text-neon-cyan"
               onUpdate={(v) => {
-                const newPts = Math.max(0, v);
-                onOptimisticUpdate(team.id, { placement_pts: newPts, total: team.kills + newPts });
-                setPlacement(game, team.id, newPts);
+                const val = Math.max(0, v);
+                onOptimisticUpdate(team.id, { placement_pts: val, total: team.kills + val });
+                setPlacement(game, team.id, val);
               }}
             />
             <StatControl
@@ -316,9 +315,9 @@ const TeamCard = ({
               value={team.wins}
               colorClass="text-yellow-400"
               onUpdate={(v) => {
-                const newWins = Math.max(0, v);
-                onOptimisticUpdate(team.id, { wins: newWins });
-                setWins(game, team.id, newWins);
+                const val = Math.max(0, v);
+                onOptimisticUpdate(team.id, { wins: val });
+                setWins(game, team.id, val);
               }}
             />
           </div>
@@ -446,7 +445,9 @@ const AdminPanel = () => {
     return subscribeToTeams(activeGame, setTeams);
   }, [unlocked, activeGame]);
 
-  // Optimistic update — patches local state immediately so UI feels instant
+  // Optimistic update: instantly patches admin panel UI.
+  // OBS Overlay is NOT affected — it reads directly from Supabase.
+  // If Supabase call fails, 2s polling auto-corrects admin UI too.
   const optimisticUpdate = useCallback((teamId: string, patch: Partial<TeamData>) => {
     setTeams(prev =>
       [...prev.map(t => t.id === teamId ? { ...t, ...patch } : t)]
