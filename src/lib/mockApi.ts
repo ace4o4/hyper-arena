@@ -347,7 +347,18 @@ export const mockApi = {
   },
 
   // Team Registration
-  createTeam: async (teamData: any) => {
+  createTeam: async (teamData: {
+    teamName: string;
+    game: string;
+    leaderEmail: string;
+    logoFile?: File | null;
+    leader: {
+      roll_no: string;
+      uid: string;
+      email: string;
+    };
+    tournamentId?: string | null;
+  }) => {
     const client = ensureClient();
     const user = await mockApi.getCurrentUser();
     if (!user) throw new Error("Not logged in");
@@ -382,7 +393,7 @@ export const mockApi = {
       game: teamData.game,
       leader_email: normalizeEmail(teamData.leaderEmail),
       leader: leaderMember,
-      logo: teamData.logo || null,
+      logo: null,
       invite_code: inviteCode,
       invite_code_lower: inviteCode.toLowerCase(),
       invite_link: generateInviteLink(inviteCode, teamData.game, teamData.tournamentId ?? null),
@@ -398,6 +409,24 @@ export const mockApi = {
 
     const { data, error } = await client.from("teams").insert(payload).select("*").single();
     if (error) throw new Error(mapDatabaseError(error, "Could not create team."));
+
+    // Upload Logo File if provided during registration
+    if (teamData.logoFile) {
+      try {
+        const publicUrl = await mockApi.uploadTeamLogo(data.id, teamData.logoFile);
+        const { data: updatedData, error: updateError } = await client
+          .from("teams")
+          .update({ logo: publicUrl })
+          .eq('id', data.id)
+          .select("*")
+          .single();
+        if (!updateError && updatedData) {
+          return toTeamRecord(updatedData as TeamRow);
+        }
+      } catch (err) {
+        console.warn("Logo upload during registration failed, but team was created.", err);
+      }
+    }
 
     return toTeamRecord(data as TeamRow);
   },

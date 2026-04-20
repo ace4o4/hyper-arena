@@ -31,7 +31,7 @@ export default function Registration() {
   const initialGame = prefilledGame === "BGMI" || prefilledGame === "Free Fire" ? prefilledGame : "";
 
   const [step, setStep] = useState<Step>("details");
-  const [selectedGame, setSelectedGame] = useState(initialGame || "BGMI");
+  const [selectedGame, setSelectedGame] = useState<"BGMI" | "Free Fire">(initialGame === "Free Fire" ? "Free Fire" : "BGMI");
   const navigate = useNavigate();
   const { toast } = useToast();
   const [errors, setErrors] = useState<FormErrors>({});
@@ -43,7 +43,8 @@ export default function Registration() {
   const [leaderEmail, setLeaderEmail] = useState("");
   const [leaderRollNo, setLeaderRollNo] = useState("");
   const [leaderUID, setLeaderUID] = useState("");
-  const [teamLogo, setTeamLogo] = useState<string | null>(null);
+  const [teamLogoPreview, setTeamLogoPreview] = useState<string | null>(null);
+  const [teamLogoFile, setTeamLogoFile] = useState<File | null>(null);
 
   // Join mode details (teammate self-fill)
   const [inviteCode, setInviteCode] = useState(inviteCodeFromQuery.toUpperCase());
@@ -144,7 +145,7 @@ export default function Registration() {
         game: selectedGame,
         tournamentId: selectedTournamentId,
         leaderEmail,
-        logo: teamLogo,
+        logoFile: teamLogoFile,
         leader: {
           roll_no: leaderRollNo,
           uid: leaderUID,
@@ -433,8 +434,8 @@ export default function Registration() {
                           className="w-full h-48 rounded-xl border-2 border-dashed border-border/40 flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 transition-all bg-black/20 relative overflow-hidden group"
                           onClick={() => document.getElementById('logo-upload')?.click()}
                         >
-                          {teamLogo ? (
-                            <img src={teamLogo} alt="Team Logo" className="w-full h-full object-contain p-2" />
+                          {teamLogoPreview ? (
+                            <img src={teamLogoPreview} alt="Team Logo" className="w-full h-full object-contain p-2" />
                           ) : (
                             <>
                               <Upload className="h-10 w-10 text-muted-foreground group-hover:text-primary transition-colors mb-2" />
@@ -450,9 +451,10 @@ export default function Registration() {
                             onChange={(e) => {
                               const file = e.target.files?.[0];
                               if (file) {
+                                setTeamLogoFile(file);
                                 const reader = new FileReader();
                                 reader.onloadend = () => {
-                                  setTeamLogo(reader.result as string);
+                                  setTeamLogoPreview(reader.result as string);
                                 };
                                 reader.readAsDataURL(file);
                               }

@@ -194,6 +194,19 @@ export default function Dashboard() {
     setIsProcessingPayment(false);
   }
 
+  const handleBackToEdit = async () => {
+    try {
+      setLoading(true);
+      const updated = await mockApi.updateTeamInfo(teamData.id, { status: "pending_players" });
+      setTeamData(updated);
+      toast({ title: "Roster Unlocked", description: "You can now edit your team details." });
+    } catch(err:any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -668,7 +681,25 @@ export default function Dashboard() {
                     >
                         {isProcessingPayment ? "Submitting..." : "I Have Paid - Submit For Verification"}
                     </Button>
-                    <p className="text-[11px] text-muted-foreground mt-3">Tickets will be generated only after admin verifies payment.</p>
+                    <p className="text-[11px] text-muted-foreground mt-3 mb-4">Tickets will be generated only after admin verifies payment.</p>
+
+                    <div className="relative my-4">
+                      <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t border-border/10" />
+                      </div>
+                      <div className="relative flex justify-center text-[10px] uppercase">
+                        <span className="bg-background px-2 text-muted-foreground">Need to change details?</span>
+                      </div>
+                    </div>
+                    
+                    <Button 
+                        variant="ghost" 
+                        onClick={handleBackToEdit} 
+                        className="w-full text-muted-foreground hover:text-white border border-transparent hover:border-white/10"
+                        disabled={isProcessingPayment}
+                    >
+                        Go Back to Edit Roster
+                    </Button>
                  </Card>
               </motion.div>
           )}
