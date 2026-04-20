@@ -31,6 +31,7 @@ export default function Dashboard() {
 
   // Edit / Confirm State
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isEditingTeam, setIsEditingTeam] = useState(false);
   const [editTeamInfo, setEditTeamInfo] = useState({ teamName: "", game: "", uid: "", roll_no: "" });
 
@@ -67,6 +68,29 @@ export default function Dashboard() {
   const handleLogout = () => {
     mockApi.logout();
     navigate("/auth");
+  };
+
+  const handleDeleteTeam = async () => {
+    if (!teamData) return;
+    setShowDeleteModal(false);
+    setLoading(true);
+    try {
+      const { supabase } = await import("@/lib/supabase");
+      if (!supabase) throw new Error("Supabase not configured.");
+      const { error } = await supabase.from("teams").delete().eq("id", teamData.id);
+      if (error) throw new Error(error.message);
+      toast({
+        title: "Team Deleted",
+        description: `"${teamData.teamName}" has been disbanded. You can now create a new team.`,
+      });
+      setTeamData(null);
+      setPlayers([]);
+      setSubstitute(null);
+    } catch (err: any) {
+      toast({ title: "Delete Failed", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleAddPlayer = (isSub: boolean) => {
@@ -248,9 +272,20 @@ export default function Dashboard() {
   if (loading) return <div className="min-h-screen flex items-center justify-center text-primary">Loading Dashboard...</div>;
 
   if (!teamData) return (
-    <div className="min-h-screen flex flex-col items-center justify-center">
-      <h2 className="text-2xl mb-4">You don't have a team yet.</h2>
-      <Button onClick={() => navigate("/tournaments")}>Go To Tournaments</Button>
+    <div className="min-h-screen flex flex-col items-center justify-center gap-6 text-center px-4" style={{background: 'var(--background)'}}>
+      <div className="w-20 h-20 rounded-full bg-primary/10 border-2 border-primary/30 flex items-center justify-center">
+        <Gamepad2 className="h-10 w-10 text-primary" />
+      </div>
+      <h2 className="text-3xl font-black text-gradient-primary">No Team Found</h2>
+      <p className="text-muted-foreground max-w-md">You haven't created or joined a team yet. Head to tournaments to register your squad!</p>
+      <div className="flex flex-col sm:flex-row gap-4">
+        <Button onClick={() => navigate("/tournaments")} className="bg-primary text-black hover:bg-primary/80 font-bold">
+          Browse Tournaments <ArrowRight className="ml-2 h-4 w-4" />
+        </Button>
+        <Button onClick={() => navigate("/create-team?mode=create")} variant="outline" className="glass border-border/30">
+          Create New Team
+        </Button>
+      </div>
     </div>
   );
 
@@ -278,11 +313,43 @@ export default function Dashboard() {
                           Please ensure all details are correct. You will <b className="text-neon-red">NOT</b> be able to edit team or player details after this step. Proceed to payment?
                        </p>
                        <div className="flex justify-end gap-3 flex-col sm:flex-row">
-                          <Button variant="ghost" onClick={() => setShowConfirmModal(false)}>Cancel & Review</Button>
+                          <Button variant="ghost" onClick={() => setShowConfirmModal(false)}>Cancel &amp; Review</Button>
                           <Button className="bg-neon-red text-white hover:bg-neon-red/80" onClick={handleSubmitPlayers}>Yes, Proceed to Payment</Button>
                        </div>
                    </div>
                 </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Delete Team Confirmation Modal */}
+          <AnimatePresence>
+            {showDeleteModal && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-50 flex items-center justify-center bg-background/90 backdrop-blur-sm p-4"
+              >
+                <div className="glass max-w-md w-full p-6 rounded-xl border border-neon-red/50 relative">
+                  <div className="flex items-center gap-3 mb-4 text-neon-red">
+                    <Trash2 className="h-8 w-8" />
+                    <h3 className="text-xl font-bold">Disband Team?</h3>
+                  </div>
+                  <p className="text-white/80 mb-2">
+                    You are about to permanently delete{" "}
+                    <span className="font-bold text-primary">"{teamData.teamName}"</span>.
+                  </p>
+                  <p className="text-muted-foreground text-sm mb-6">
+                    This action cannot be undone. After deletion, you'll be free to create a new team.
+                  </p>
+                  <div className="flex justify-end gap-3 flex-col sm:flex-row">
+                    <Button variant="ghost" onClick={() => setShowDeleteModal(false)}>Cancel</Button>
+                    <Button className="bg-neon-red text-white hover:bg-neon-red/80" onClick={handleDeleteTeam}>
+                      <Trash2 className="h-4 w-4 mr-2" /> Yes, Delete Team
+                    </Button>
+                  </div>
+                </div>
+              </motion.div>
             )}
           </AnimatePresence>
 
@@ -378,10 +445,15 @@ export default function Dashboard() {
                   </p>
                 </div>
               </div>
-              <div>
+              <div className="flex items-center gap-3">
                 <span className={`px-4 py-1 rounded-full text-xs font-bold ${teamData.status === 'confirmed' ? 'bg-primary text-black' : teamData.status === 'payment_review' ? 'bg-neon-cyan/20 text-neon-cyan' : 'bg-neon-red/20 text-neon-red'}`}>
                   {teamData.status.replace('_', ' ').toUpperCase()}
                 </span>
+                {teamData.status === 'pending_players' && currentUserId === teamData.user_id && (
+                  <Button variant="outline" size="sm" onClick={() => setShowDeleteModal(true)} className="border-neon-red text-neon-red hover:bg-neon-red/10 h-7 text-xs px-2">
+                    <Trash2 className="h-3 w-3 mr-1" /> Delete
+                  </Button>
+                )}
               </div>
             </div>
             )}

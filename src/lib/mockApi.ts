@@ -212,7 +212,12 @@ export const mockApi = {
   loginWithGoogle: async () => {
     const client = ensureClient();
 
-    const redirectTo = typeof window !== "undefined" ? `${window.location.origin}/tournaments` : undefined;
+    // After Google OAuth, Supabase redirects back — we handle smart routing
+    // in the auth callback via /auth/confirm. Use that as the redirectTo.
+    const redirectTo =
+      typeof window !== "undefined"
+        ? `${window.location.origin}/auth/confirm?source=google`
+        : undefined;
 
     const { data, error } = await client.auth.signInWithOAuth({
       provider: "google",
@@ -325,11 +330,40 @@ export const mockApi = {
     return toTeamRecord(data as TeamRow);
   },
 
+  // Check if user already has an active team
+  hasExistingTeam: async (): Promise<boolean> => {
+    const client = ensureClient();
+    const user = await mockApi.getCurrentUser();
+    if (!user) return false;
+
+    const { data, error } = await client
+      .from("teams")
+      .select("id")
+      .eq("user_id", user.uid)
+      .limit(1);
+
+    if (error) return false;
+    return Boolean(data && data.length > 0);
+  },
+
   // Team Registration
   createTeam: async (teamData: any) => {
     const client = ensureClient();
     const user = await mockApi.getCurrentUser();
     if (!user) throw new Error("Not logged in");
+
+    // 🔒 One-team-per-user rule: block if user already leads a team
+    const { data: existingTeams, error: existingError } = await client
+      .from("teams")
+      .select("id, team_name")
+      .eq("user_id", user.uid)
+      .limit(1);
+
+    if (!existingError && existingTeams && existingTeams.length > 0) {
+      throw new Error(
+        `You already have a team ("${existingTeams[0].team_name}"). Delete it from your dashboard before creating a new one.`
+      );
+    }
 
     const inviteCode = await generateUniqueInviteCode();
     const leaderMember: TeamMember = {

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import confetti from "canvas-confetti";
 import { motion, AnimatePresence } from "framer-motion";
-import { Gamepad2, ArrowRight, Check, Mail, User, Hash, Crown, AlertCircle, Upload, Image as ImageIcon } from "lucide-react";
+import { Gamepad2, ArrowRight, Check, Mail, User, Hash, Crown, AlertCircle, Upload, Image as ImageIcon, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,6 +36,7 @@ export default function Registration() {
   const { toast } = useToast();
   const [errors, setErrors] = useState<FormErrors>({});
   const [loading, setLoading] = useState(false);
+  const [existingTeamName, setExistingTeamName] = useState<string | null>(null);
 
   // Team details
   const [teamName, setTeamName] = useState("");
@@ -75,6 +76,16 @@ export default function Registration() {
           navigate("/auth");
         } else {
           setLeaderEmail(user.email);
+
+          // Check if user already leads a team
+          if (!isJoinMode) {
+            const hasTeam = await mockApi.hasExistingTeam();
+            if (hasTeam) {
+              // Fetch the team name for the warning
+              const team = await mockApi.getTeamByLeader(user.email);
+              setExistingTeamName(team?.teamName ?? "your existing team");
+            }
+          }
         }
       } catch (err) {
         toast({ title: "Auth Error", description: "Could not verify session", variant: "destructive" });
@@ -82,7 +93,7 @@ export default function Registration() {
       }
     };
     fetchUser();
-  }, [navigate, toast]);
+  }, [navigate, toast, isJoinMode]);
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
@@ -252,7 +263,42 @@ export default function Registration() {
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-4xl">
           
           <Card className="glass p-8 border-border/20 relative">
-            {isJoinMode ? (
+            {/* BLOCK: User already has a team and is trying to create another */}
+            {!isJoinMode && existingTeamName ? (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="flex flex-col items-center justify-center py-16 text-center"
+              >
+                <div className="w-20 h-20 rounded-full bg-neon-red/20 border-2 border-neon-red flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(255,0,80,0.3)]">
+                  <Shield className="w-10 h-10 text-neon-red" />
+                </div>
+                <h2 className="text-3xl font-black mb-3 text-neon-red">Team Already Exists</h2>
+                <p className="text-white/80 mb-2 text-lg">
+                  You are already the leader of{" "}
+                  <span className="font-bold text-primary">"{existingTeamName}"</span>.
+                </p>
+                <p className="text-muted-foreground mb-8 max-w-md">
+                  One account can only lead one team at a time. To create a new team, please delete your current team from the dashboard first.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <Button
+                    onClick={() => navigate("/dashboard")}
+                    className="bg-primary text-black hover:bg-primary/80 font-bold px-8"
+                  >
+                    Go to My Dashboard <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate(`/create-team?mode=join`)}
+                    className="glass border-border/30"
+                  >
+                    Join a Team Instead
+                  </Button>
+                </div>
+              </motion.div>
+            ) : isJoinMode ? (
+
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
                 <h2 className="text-3xl font-black mb-2 text-gradient-primary">Join Existing Team</h2>
                 <p className="text-muted-foreground mb-8">
