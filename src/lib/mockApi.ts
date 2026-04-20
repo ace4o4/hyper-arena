@@ -1,6 +1,5 @@
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { supabase } from "./supabase";
-import { UTR_LENGTH } from "./config";
 
 type DatabaseError = {
   code?: string;
@@ -19,7 +18,7 @@ type TeamMember = {
   uid: string;
 };
 
-type TeamStatus = "pending_players" | "payment_pending" | "payment_submitted" | "confirmed" | string;
+type TeamStatus = "pending_players" | "payment_pending" | "payment_review" | "confirmed" | string;
 
 type TeamRow = {
   id: string;
@@ -40,13 +39,11 @@ type TeamRow = {
   member_emails: string[] | null;
   member_uids: string[] | null;
   member_user_ids: string[] | null;
-  utr_number: string | null;
-  payment_rejected_reason: string | null;
   created_at: string;
   updated_at: string | null;
 };
 
-type TeamRecord = {
+export type TeamRecord = {
   id: string;
   user_id: string;
   tournamentId: string | null;
@@ -65,18 +62,13 @@ type TeamRecord = {
   memberEmails: string[];
   memberUids: string[];
   memberUserIds: string[];
-  utrNumber: string | null;
-  paymentRejectedReason: string | null;
   createdAt: string;
   updatedAt: string | null;
 };
 
+type PaymentReviewDecision = "approve" | "reject";
+
 const normalizeEmail = (email: string) => email.trim().toLowerCase();
-export const isValidUTR = (utrNumber: string) => {
-  const normalizedUTR = utrNumber.trim();
-  return normalizedUTR.length === UTR_LENGTH && /^\d+$/.test(normalizedUTR);
-};
-export const UTR_VALIDATION_MESSAGE = `UTR (Unique Transaction Reference) must be exactly ${UTR_LENGTH} numeric digits from your payment confirmation.`;
 
 const uniqueStrings = (values: string[]) => {
   return Array.from(new Set(values.filter(Boolean)));
@@ -138,8 +130,6 @@ const toTeamRecord = (row: TeamRow): TeamRecord => {
     memberEmails: row.member_emails || [],
     memberUids: row.member_uids || [],
     memberUserIds: row.member_user_ids || [],
-    utrNumber: row.utr_number,
-    paymentRejectedReason: row.payment_rejected_reason,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -610,8 +600,6 @@ export const mockApi = {
         players,
         substitute,
         status: "payment_pending",
-        utr_number: null,
-        payment_rejected_reason: null,
         member_emails: metadata.memberEmails,
         member_uids: metadata.memberUids,
         member_user_ids: metadata.memberUserIds,
@@ -630,7 +618,7 @@ export const mockApi = {
 
     const { data, error } = await client
       .from("teams")
-      .update({ status: "confirmed", payment_rejected_reason: null, updated_at: new Date().toISOString() })
+      .update({ status: "confirmed", updated_at: new Date().toISOString() })
       .eq("id", teamId)
       .select("*")
       .single();
@@ -639,65 +627,24 @@ export const mockApi = {
     return toTeamRecord(data as TeamRow);
   },
 
-  submitUTR: async (teamId: string, utrNumber: string) => {
-    const client = ensureClient();
-    const normalizedUTR = utrNumber.trim();
-
-    if (!isValidUTR(normalizedUTR)) {
-      throw new Error(UTR_VALIDATION_MESSAGE);
-    }
-
-    const { data, error } = await client
-      .from("teams")
-      .update({
-        utr_number: normalizedUTR,
-        payment_rejected_reason: null,
-        status: "payment_submitted",
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", teamId)
-      .select("*")
-      .single();
-
-    if (error) throw new Error(mapDatabaseError(error, "Could not submit UTR."));
-    return toTeamRecord(data as TeamRow);
-  },
-
-  rejectPayment: async (teamId: string, reason?: string) => {
+  getTeamsByStatus: async (status: TeamStatus) => {
     const client = ensureClient();
 
     const { data, error } = await client
       .from("teams")
-      .update({
-        status: "payment_pending",
-        payment_rejected_reason: reason?.trim() || null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", teamId)
       .select("*")
-      .single();
-
-    if (error) throw new Error(mapDatabaseError(error, "Could not reject payment."));
-    return toTeamRecord(data as TeamRow);
-  },
-
-  listTeamsByStatus: async (statuses: TeamStatus[]) => {
-    const client = ensureClient();
-
-    if (!Array.isArray(statuses) || statuses.length === 0) {
-      return [] as TeamRecord[];
-    }
-
-    const { data, error } = await client
-      .from("teams")
-      .select("*")
-      .in("status", statuses)
-      .order("updated_at", { ascending: false });
+      .eq("status", status)
+      .order("created_at", { ascending: true });
 
     if (error) {
       throw new Error(mapDatabaseError(error, "Could not fetch teams by status."));
     }
 
-    return ((data || []) as TeamRow[]).map(toTeamRecord);
+    return (data || []).map((row) => toTeamRecord(row as TeamRow));
+  },
+
+  reviewTeamPayment: async (teamId: string, decision: PaymentReviewDecision) => {
+    const nextStatus = decision === "approve" ? "confirmed" : "payment_pending";
+    return mockApi.updateTeamInfo(teamId, { status: nextStatus });
   },
 };

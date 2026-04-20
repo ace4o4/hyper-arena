@@ -3,17 +3,16 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Shield, Lock, Target, Trophy, Zap, Plus, Minus,
   Trash2, RotateCcw, UserPlus, Crosshair, Wifi,
-  ChevronRight, Pencil, Check, X, MapPin, IndianRupee, Loader2,
+  ChevronRight, Pencil, Check, X, MapPin,
   Monitor, ExternalLink, Copy, CheckCheck,
 } from 'lucide-react';
+import { mockApi, type TeamRecord } from '@/lib/mockApi';
+import { useToast } from '@/hooks/use-toast';
 import {
   Game, TeamData,
   subscribeToTeams, setKills, setPlacement, setWins,
   addTeam, updateTeam, resetTeam, deleteTeam,
 } from '@/lib/pointsTableApi';
-import { mockApi } from '@/lib/mockApi';
-import { useToast } from '@/hooks/use-toast';
-import { ENTRY_FEE_INR } from '@/lib/config';
 
 const ADMIN_PIN = '21468';
 
@@ -442,10 +441,9 @@ const AdminPanel = () => {
   const [showAdd, setShowAdd] = useState(false);
   const [newName, setNewName] = useState('');
   const [newLogo, setNewLogo] = useState('🎮');
-  const [paymentTeams, setPaymentTeams] = useState<any[]>([]);
-  const [paymentLoading, setPaymentLoading] = useState(false);
-  const [paymentActionTeamId, setPaymentActionTeamId] = useState<string | null>(null);
-  const [rejectionReasons, setRejectionReasons] = useState<Record<string, string>>({});
+  const [paymentQueue, setPaymentQueue] = useState<TeamRecord[]>([]);
+  const [isLoadingPaymentQueue, setIsLoadingPaymentQueue] = useState(false);
+  const [reviewingTeamId, setReviewingTeamId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!unlocked) return;
@@ -453,66 +451,27 @@ const AdminPanel = () => {
     return subscribeToTeams(activeGame, setTeams);
   }, [unlocked, activeGame]);
 
-  const refreshPendingPayments = useCallback(async () => {
-    setPaymentLoading(true);
+  const loadPaymentQueue = useCallback(async () => {
+    if (!unlocked) return;
+
+    setIsLoadingPaymentQueue(true);
     try {
-      const pendingTeams = await mockApi.listTeamsByStatus(["payment_submitted"]);
-      setPaymentTeams(pendingTeams);
+      const queuedTeams = await mockApi.getTeamsByStatus('payment_review');
+      setPaymentQueue(queuedTeams);
     } catch (error: any) {
-      setPaymentTeams([]);
       toast({
-        title: "Payment Queue Error",
-        description: error?.message || "Could not fetch pending payments.",
-        variant: "destructive",
+        title: 'Payment Queue Error',
+        description: error?.message || 'Could not load payment queue.',
+        variant: 'destructive',
       });
     } finally {
-      setPaymentLoading(false);
+      setIsLoadingPaymentQueue(false);
     }
-  }, [toast]);
+  }, [toast, unlocked]);
 
   useEffect(() => {
-    if (!unlocked) return;
-    void refreshPendingPayments();
-    const intervalId = window.setInterval(() => {
-      void refreshPendingPayments();
-    }, 30000);
-    return () => window.clearInterval(intervalId);
-  }, [unlocked, refreshPendingPayments]);
-
-  const handleConfirmPayment = useCallback(async (teamId: string) => {
-    setPaymentActionTeamId(teamId);
-    try {
-      await mockApi.confirmPayment(teamId);
-      toast({ title: "Payment Confirmed" });
-      await refreshPendingPayments();
-    } catch (error: any) {
-      toast({
-        title: "Confirm Failed",
-        description: error?.message || "Could not confirm payment.",
-        variant: "destructive",
-      });
-    } finally {
-      setPaymentActionTeamId(null);
-    }
-  }, [refreshPendingPayments, toast]);
-
-  const handleRejectPayment = useCallback(async (teamId: string) => {
-    setPaymentActionTeamId(teamId);
-    try {
-      await mockApi.rejectPayment(teamId, rejectionReasons[teamId]);
-      toast({ title: "Payment Rejected", description: "Team moved back to payment pending." });
-      setRejectionReasons((prev) => ({ ...prev, [teamId]: "" }));
-      await refreshPendingPayments();
-    } catch (error: any) {
-      toast({
-        title: "Reject Failed",
-        description: error?.message || "Could not reject payment.",
-        variant: "destructive",
-      });
-    } finally {
-      setPaymentActionTeamId(null);
-    }
-  }, [refreshPendingPayments, rejectionReasons, toast]);
+    void loadPaymentQueue();
+  }, [loadPaymentQueue]);
 
   // Optimistic update: instantly patches admin panel UI.
   // OBS Overlay is NOT affected — it reads directly from Supabase.
@@ -531,6 +490,31 @@ const AdminPanel = () => {
     setNewLogo('🎮');
     setShowAdd(false);
   }, [activeGame, newName, newLogo]);
+
+  const handlePaymentReview = useCallback(async (teamId: string, decision: 'approve' | 'reject') => {
+    setReviewingTeamId(teamId);
+
+    try {
+      await mockApi.reviewTeamPayment(teamId, decision);
+      setPaymentQueue((prev) => prev.filter((team) => team.id !== teamId));
+
+      toast({
+        title: decision === 'approve' ? 'Payment Confirmed' : 'Payment Rejected',
+        description:
+          decision === 'approve'
+            ? 'Team moved to confirmed state and tickets are now unlocked.'
+            : 'Team moved back to payment_pending for retry.',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Review Failed',
+        description: error?.message || 'Could not update payment status.',
+        variant: 'destructive',
+      });
+    } finally {
+      setReviewingTeamId(null);
+    }
+  }, [toast]);
 
   if (!unlocked) return <PinScreen onUnlock={() => setUnlocked(true)} />;
 
@@ -560,6 +544,56 @@ const AdminPanel = () => {
 
         {/* ── OBS Broadcast Overlay ── */}
         <BroadcastPanel />
+
+        {/* ── Payment Review Queue ── */}
+        <div className="mb-6 glass border border-neon-cyan/30 p-4"
+          style={{ clipPath: 'polygon(0 0,calc(100% - 16px) 0,100% 16px,100% 100%,16px 100%,0 calc(100% - 16px))' }}>
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <div>
+              <h2 className="font-orbitron font-bold text-xs tracking-widest text-neon-cyan uppercase">Payment Verification Queue</h2>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-[0.14em]">Approve or reject submitted payment requests</p>
+            </div>
+            <motion.button whileTap={{ scale: 0.96 }}
+              onClick={() => void loadPaymentQueue()}
+              className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest border border-neon-cyan/40 text-neon-cyan hover:bg-neon-cyan/10 transition-colors">
+              Refresh
+            </motion.button>
+          </div>
+
+          {isLoadingPaymentQueue ? (
+            <p className="text-xs text-muted-foreground">Loading payment queue...</p>
+          ) : paymentQueue.length === 0 ? (
+            <p className="text-xs text-muted-foreground">No team is waiting for payment verification.</p>
+          ) : (
+            <div className="space-y-2">
+              {paymentQueue.map((team) => (
+                <div key={team.id} className="p-3 border border-white/10 rounded-md bg-black/35">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div>
+                      <p className="font-orbitron font-bold text-sm text-foreground">{team.teamName}</p>
+                      <p className="text-[11px] text-muted-foreground">{team.game} • Leader: {team.leader.uid}</p>
+                      <p className="text-[10px] text-muted-foreground">Requested: {new Date(team.updatedAt || team.createdAt).toLocaleString()}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <motion.button whileTap={{ scale: 0.95 }}
+                        disabled={reviewingTeamId === team.id}
+                        onClick={() => void handlePaymentReview(team.id, 'approve')}
+                        className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest border border-primary/40 text-primary hover:bg-primary/15 transition-colors disabled:opacity-50">
+                        Confirm
+                      </motion.button>
+                      <motion.button whileTap={{ scale: 0.95 }}
+                        disabled={reviewingTeamId === team.id}
+                        onClick={() => void handlePaymentReview(team.id, 'reject')}
+                        className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest border border-destructive/40 text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50">
+                        Reject
+                      </motion.button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* ── Game Tabs ── */}
         <div className="flex gap-2 mb-6">
@@ -597,64 +631,6 @@ const AdminPanel = () => {
               <div className="text-[9px] uppercase tracking-widest text-muted-foreground mt-1">{s.label}</div>
             </div>
           ))}
-        </div>
-
-        <div className="mb-6 glass border border-primary/20 p-4"
-          style={{ clipPath:'polygon(0 0,calc(100% - 16px) 0,100% 16px,100% 100%,16px 100%,0 calc(100% - 16px))' }}>
-          <div className="flex items-center gap-2 mb-3">
-            <IndianRupee className="w-4 h-4 text-primary shrink-0" />
-            <h2 className="font-orbitron font-bold text-xs tracking-widest text-primary uppercase">Pending Payments</h2>
-            <span className="ml-auto text-[10px] text-muted-foreground">Entry Fee ₹{ENTRY_FEE_INR}</span>
-          </div>
-
-          {paymentLoading ? (
-            <div className="flex items-center justify-center py-8 text-muted-foreground text-xs gap-2">
-              <Loader2 className="w-4 h-4 animate-spin" /> Fetching pending payments...
-            </div>
-          ) : paymentTeams.length === 0 ? (
-            <p className="text-xs text-muted-foreground py-4">No payment submissions in queue.</p>
-          ) : (
-            <div className="space-y-3">
-              {paymentTeams.map((team) => (
-                <div key={team.id} className="border border-white/10 rounded-md p-3 bg-black/20">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
-                    <div>
-                      <p className="text-sm font-bold text-foreground">{team.teamName}</p>
-                      <p className="text-[11px] text-muted-foreground">{team.game} | UTR: {team.utrNumber || "-"}</p>
-                    </div>
-                    <span className="text-xs text-primary font-bold">₹{ENTRY_FEE_INR}</span>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground mb-1">Rejection Reason (optional)</p>
-                  <input
-                    type="text"
-                    value={rejectionReasons[team.id] || ""}
-                    onChange={(e) => setRejectionReasons((prev) => ({ ...prev, [team.id]: e.target.value }))}
-                    placeholder="Optional rejection reason"
-                    aria-label={`Rejection reason for ${team.teamName}`}
-                    className="w-full mb-2 bg-background/60 border border-white/10 px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none"
-                  />
-                  <div className="flex gap-2">
-                    <motion.button
-                      whileTap={{ scale: 0.97 }}
-                      onClick={() => handleConfirmPayment(team.id)}
-                      disabled={paymentActionTeamId === team.id}
-                      className="flex-1 py-2 bg-primary/20 border border-primary/40 text-primary text-xs font-bold hover:bg-primary/30 transition-all disabled:opacity-50"
-                    >
-                      {paymentActionTeamId === team.id ? "PROCESSING..." : "CONFIRM"}
-                    </motion.button>
-                    <motion.button
-                      whileTap={{ scale: 0.97 }}
-                      onClick={() => handleRejectPayment(team.id)}
-                      disabled={paymentActionTeamId === team.id}
-                      className="flex-1 py-2 bg-destructive/20 border border-destructive/40 text-destructive text-xs font-bold hover:bg-destructive/30 transition-all disabled:opacity-50"
-                    >
-                      REJECT
-                    </motion.button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
 
         {/* ── Add Team ── */}
