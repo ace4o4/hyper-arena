@@ -198,18 +198,15 @@ export default function Dashboard() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onloadend = async () => {
-      const base64Logo = reader.result as string;
-      try {
-        const updated = await mockApi.updateTeamInfo(teamData.id, { logo: base64Logo });
-        setTeamData(updated);
-        toast({ title: "Logo Updated", description: "Team emblem has been saved." });
-      } catch (err: any) {
-        toast({ title: "Upload Failed", description: err.message, variant: "destructive" });
-      }
-    };
-    reader.readAsDataURL(file);
+    try {
+      toast({ title: "Uploading...", description: "Saving logo to the server." });
+      const publicUrl = await mockApi.uploadTeamLogo(teamData.id, file);
+      const updated = await mockApi.updateTeamInfo(teamData.id, { logo: publicUrl });
+      setTeamData(updated);
+      toast({ title: "Logo Updated", description: "Team emblem has been securely saved." });
+    } catch (err: any) {
+      toast({ title: "Upload Failed", description: err.message, variant: "destructive" });
+    }
   };
 
   const handleRemoveLogo = async () => {
@@ -667,7 +664,7 @@ export default function Dashboard() {
                     <Button 
                         disabled={isProcessingPayment} 
                         onClick={handlePayment} 
-                        className="w-full bg-primary hover:bg-primary/80 text-black font-bold h-12 text-lg"
+                        className="w-full bg-primary hover:bg-primary/80 text-black font-bold h-auto py-3 text-sm uppercase tracking-wide whitespace-normal leading-tight"
                     >
                         {isProcessingPayment ? "Submitting..." : "I Have Paid - Submit For Verification"}
                     </Button>

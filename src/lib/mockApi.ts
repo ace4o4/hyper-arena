@@ -681,4 +681,30 @@ export const mockApi = {
     const nextStatus = decision === "approve" ? "confirmed" : "payment_pending";
     return mockApi.updateTeamInfo(teamId, { status: nextStatus });
   },
+
+  uploadTeamLogo: async (teamId: string, file: File): Promise<string> => {
+    const client = ensureClient();
+    
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${teamId}-${Date.now()}.${fileExt}`;
+    const filePath = `${fileName}`;
+
+    // Upload to 'team-logos' bucket
+    const { error: uploadError } = await client
+      .storage
+      .from('team-logos')
+      .upload(filePath, file, { upsert: true });
+
+    if (uploadError) {
+      throw new Error(`Failed to upload logo: ${uploadError.message}`);
+    }
+
+    // Get public URL
+    const { data: { publicUrl } } = client
+      .storage
+      .from('team-logos')
+      .getPublicUrl(filePath);
+
+    return publicUrl;
+  },
 };
