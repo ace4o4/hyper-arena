@@ -1,6 +1,8 @@
-// ─── Server-synced Points Table API ─────────────────────────────────────────
-// Writes go to: localStorage (persistence) + Vite /api/pts (cross-process sync)
-// Reads come from: /api/pts (so OBS gets same data as admin browser)
+// ─── Supabase-backed Points Table API ────────────────────────────────────────
+// Optimistic-update friendly: all write functions take absolute values (not deltas)
+// so they do a single UPDATE with no pre-fetch SELECT needed.
+
+import { supabase } from './supabase';
 
 export type Game = 'bgmi' | 'freefire';
 
@@ -11,177 +13,107 @@ export interface TeamData {
   kills: number;
   placement_pts: number;
   wins: number;
-  total: number;         // AUTO: kills + placement_pts
+  total: number; // GENERATED ALWAYS AS (kills + placement_pts) STORED
 }
 
-// ── Internal helpers ─────────────────────────────────────────────────────────
+const tbl = (game: Game) => `points_${game}`;
 
-const key = (game: Game) => `pts_${game}`;
-const API_BASE = '/api/pts';
-
-// Read from localStorage (local fast cache)
-const readLocal = (game: Game): TeamData[] => {
-  try {
-    const raw = localStorage.getItem(key(game));
-    return raw ? JSON.parse(raw) : [];
-  } catch { return []; }
+// ── Fetch all teams sorted ────────────────────────────────────────────────────
+const fetchTeams = async (game: Game): Promise<TeamData[]> => {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from(tbl(game))
+    .select('id, name, logo, kills, placement_pts, wins, total')
+    .order('total', { ascending: false })
+    .order('wins',  { ascending: false });
+  if (error) { console.error('[pts fetch]', error.message); return []; }
+  return (data ?? []) as TeamData[];
 };
 
-// Write to both localStorage AND the Vite server (so OBS can GET it)
-const write = async (game: Game, teams: TeamData[]) => {
-  const json = JSON.stringify(teams);
-  localStorage.setItem(key(game), json);
-
-  // Push to Vite in-memory store so OBS Browser Source can read it
-  try {
-    await fetch(`${API_BASE}?game=${game}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: json,
-    });
-  } catch { /* ignore if server not available */ }
-
-  // Notify same-tab listeners
-  window.dispatchEvent(new CustomEvent('pts_sync', { detail: game }));
-  // Notify other browser windows/tabs
-  try {
-    new BroadcastChannel('hyper_arena_pts').postMessage({ game });
-  } catch { /* ignore */ }
-};
-
-const sorted = (teams: TeamData[]) =>
-  [...teams].sort((a, b) => b.total - a.total);
-
-const recalc = (t: Omit<TeamData, 'total'>): TeamData => ({
-  ...t,
-  total: t.kills + t.placement_pts,
-});
-
-// ── Public API ────────────────────────────────────────────────────────────────
-
-/** Subscribe to live updates. Returns unsubscribe fn. */
+// ── subscribeToTeams ──────────────────────────────────────────────────────────
+// Realtime (instant when WS works) + 2s polling fallback (always works)
 export const subscribeToTeams = (
   game: Game,
   cb: (teams: TeamData[]) => void
 ): (() => void) => {
+  if (!supabase) { console.error('[pts] Supabase not configured.'); return () => {}; }
 
-  // Read: prefer server (so OBS gets correct data), fall back to localStorage
-  const load = async () => {
-    try {
-      const res = await fetch(`${API_BASE}?game=${game}`, { cache: 'no-store' });
-      if (res.ok) {
-        const data: TeamData[] = await res.json();
-        cb(sorted(data));
-        // Sync to localStorage as cache
-        localStorage.setItem(key(game), JSON.stringify(data));
-        return;
-      }
-    } catch { /* server not up, fall through */ }
-    cb(sorted(readLocal(game)));
+  let destroyed = false;
+  const notify = async () => {
+    if (destroyed) return;
+    const teams = await fetchTeams(game);
+    if (!destroyed) cb(teams);
   };
 
-  load(); // initial
+  notify(); // initial load
 
-  // Same-tab event
-  const onSyncEvent = (e: Event) => {
-    if ((e as CustomEvent).detail === game) load();
-  };
-  // Cross-tab storage event
-  const onStorage = (e: StorageEvent) => {
-    if (e.key === key(game)) load();
-  };
+  // Realtime — fires instantly when DB changes
+  const channel = supabase
+    .channel(`pts_${game}_${Date.now()}`)
+    .on('postgres_changes', { event: '*', schema: 'public', table: tbl(game) }, () => notify())
+    .subscribe();
 
-  window.addEventListener('pts_sync', onSyncEvent);
-  window.addEventListener('storage', onStorage);
-
-  // Poll every 1.5s (guarantees OBS always gets fresh data)
-  const pollInterval = setInterval(load, 1500);
+  // 2s polling fallback
+  const poll = setInterval(notify, 2000);
 
   return () => {
-    window.removeEventListener('pts_sync', onSyncEvent);
-    window.removeEventListener('storage', onStorage);
-    clearInterval(pollInterval);
+    destroyed = true;
+    clearInterval(poll);
+    supabase.removeChannel(channel);
   };
 };
 
-/** Add a brand-new team with all stats at 0 */
-export const addTeam = (game: Game, name: string, logo = '🎮') => {
-  const teams = readLocal(game);
-  const newTeam: TeamData = {
-    id: `${Date.now()}`,
-    name: name.trim(),
-    logo,
-    kills: 0,
-    placement_pts: 0,
-    wins: 0,
-    total: 0,
-  };
-  write(game, [...teams, newTeam]);
+// ── Write functions — single UPDATE, no SELECT needed ────────────────────────
+
+export const addTeam = async (game: Game, name: string, logo = '🎮') => {
+  if (!supabase) return;
+  const { error } = await supabase.from(tbl(game)).insert([{ name: name.trim(), logo }]);
+  if (error) console.error('[addTeam]', error.message);
 };
 
-/** Fully overwrite a team's editable fields */
-export const updateTeam = (
+export const updateTeam = async (
   game: Game,
   teamId: string,
   updates: Partial<Omit<TeamData, 'id' | 'total'>>
 ) => {
-  write(
-    game,
-    readLocal(game).map((t) =>
-      t.id === teamId ? recalc({ ...t, ...updates }) : t
-    )
-  );
+  if (!supabase) return;
+  const { error } = await supabase.from(tbl(game)).update(updates).eq('id', teamId);
+  if (error) console.error('[updateTeam]', error.message);
 };
 
-/** +/- kills */
-export const addKill = (game: Game, teamId: string, delta: number) => {
-  write(
-    game,
-    readLocal(game).map((t) => {
-      if (t.id !== teamId) return t;
-      const kills = Math.max(0, t.kills + delta);
-      return recalc({ ...t, kills });
-    })
-  );
+// These take ABSOLUTE values (not deltas) — caller (AdminPanel) knows current value
+// so no SELECT round-trip needed → half the latency
+export const setKills = async (game: Game, teamId: string, value: number) => {
+  if (!supabase) return;
+  await supabase.from(tbl(game)).update({ kills: Math.max(0, value) }).eq('id', teamId);
 };
 
-/** +/- placement points */
-export const addPlacement = (game: Game, teamId: string, delta: number) => {
-  write(
-    game,
-    readLocal(game).map((t) => {
-      if (t.id !== teamId) return t;
-      const placement_pts = Math.max(0, t.placement_pts + delta);
-      return recalc({ ...t, placement_pts });
-    })
-  );
+export const setPlacement = async (game: Game, teamId: string, value: number) => {
+  if (!supabase) return;
+  await supabase.from(tbl(game)).update({ placement_pts: Math.max(0, value) }).eq('id', teamId);
 };
 
-/** +/- win count */
-export const addWin = (game: Game, teamId: string, delta = 1) => {
-  write(
-    game,
-    readLocal(game).map((t) =>
-      t.id === teamId
-        ? { ...t, wins: Math.max(0, t.wins + delta) }
-        : t
-    )
-  );
+export const setWins = async (game: Game, teamId: string, value: number) => {
+  if (!supabase) return;
+  await supabase.from(tbl(game)).update({ wins: Math.max(0, value) }).eq('id', teamId);
 };
 
-/** Reset a team's stats */
-export const resetTeam = (game: Game, teamId: string) => {
-  write(
-    game,
-    readLocal(game).map((t) =>
-      t.id === teamId
-        ? { ...t, kills: 0, placement_pts: 0, wins: 0, total: 0 }
-        : t
-    )
-  );
+// Keep old names as aliases for backward compat
+export const addKill = (game: Game, teamId: string, delta: number) => setKills(game, teamId, delta);
+export const addPlacement = (game: Game, teamId: string, delta: number) => setPlacement(game, teamId, delta);
+export const addWin = (game: Game, teamId: string, delta: number) => setWins(game, teamId, delta);
+
+export const resetTeam = async (game: Game, teamId: string) => {
+  if (!supabase) return;
+  const { error } = await supabase
+    .from(tbl(game))
+    .update({ kills: 0, placement_pts: 0, wins: 0 })
+    .eq('id', teamId);
+  if (error) console.error('[resetTeam]', error.message);
 };
 
-/** Permanently delete a team */
-export const deleteTeam = (game: Game, teamId: string) => {
-  write(game, readLocal(game).filter((t) => t.id !== teamId));
+export const deleteTeam = async (game: Game, teamId: string) => {
+  if (!supabase) return;
+  const { error } = await supabase.from(tbl(game)).delete().eq('id', teamId);
+  if (error) console.error('[deleteTeam]', error.message);
 };
