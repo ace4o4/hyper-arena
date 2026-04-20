@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import {
   Game, TeamData,
-  subscribeToTeams, addKill, addPlacement, addWin,
+  subscribeToTeams, setKills, setPlacement, setWins,
   addTeam, updateTeam, resetTeam, deleteTeam,
 } from '@/lib/pointsTableApi';
 
@@ -159,7 +159,13 @@ const StatControl = ({
 // ─────────────────────────────────────────
 // Team Card
 // ─────────────────────────────────────────
-const TeamCard = ({ team, game }: { team: TeamData; game: Game }) => {
+const TeamCard = ({
+  team, game, onOptimisticUpdate,
+}: {
+  team: TeamData;
+  game: Game;
+  onOptimisticUpdate: (teamId: string, patch: Partial<TeamData>) => void;
+}) => {
   const [editMode, setEditMode] = useState(false);
   const [draft, setDraft] = useState({
     name: team.name, logo: team.logo,
@@ -174,8 +180,8 @@ const TeamCard = ({ team, game }: { team: TeamData; game: Game }) => {
     }
   }, [team, editMode]);
 
-  const saveEdit = () => {
-    updateTeam(game, team.id, {
+  const saveEdit = async () => {
+    await updateTeam(game, team.id, {
       name: draft.name.trim() || team.name,
       logo: draft.logo || '🎮',
     });
@@ -240,7 +246,7 @@ const TeamCard = ({ team, game }: { team: TeamData; game: Game }) => {
                   <p className="text-xs text-destructive font-bold uppercase tracking-wider">Delete "{team.name}"?</p>
                   <div className="flex gap-2">
                     <motion.button whileTap={{ scale:0.9 }}
-                      onClick={() => deleteTeam(game, team.id)}
+                      onClick={() => { deleteTeam(game, team.id); setShowConfirmDelete(false); }}
                       className="px-3 py-1 bg-destructive/20 border border-destructive/50 text-destructive text-xs font-bold hover:bg-destructive/30 transition-all">
                       DELETE
                     </motion.button>
@@ -264,7 +270,7 @@ const TeamCard = ({ team, game }: { team: TeamData; game: Game }) => {
                   <p className="text-xs text-yellow-400 font-bold uppercase tracking-wider">Reset all stats to 0?</p>
                   <div className="flex gap-2">
                     <motion.button whileTap={{ scale:0.9 }}
-                      onClick={() => { resetTeam(game, team.id); setShowConfirmReset(false); }}
+                      onClick={async () => { await resetTeam(game, team.id); setShowConfirmReset(false); }}
                       className="px-3 py-1 bg-yellow-500/20 border border-yellow-500/50 text-yellow-400 text-xs font-bold hover:bg-yellow-500/30 transition-all">
                       RESET
                     </motion.button>
@@ -281,25 +287,39 @@ const TeamCard = ({ team, game }: { team: TeamData; game: Game }) => {
 
           {/* Compact Input Grid */}
           <div className="grid grid-cols-3 gap-2">
-            <StatControl 
-              label="Kills" 
-              icon={<Target className="w-3 h-3"/>} 
-              value={team.kills} 
-              onUpdate={(v) => addKill(game, team.id, v - team.kills)} 
+            <StatControl
+              label="Kills"
+              icon={<Target className="w-3 h-3"/>}
+              value={team.kills}
+              onUpdate={(v) => {
+                const newKills = Math.max(0, v);
+                // Optimistic: update UI instantly
+                onOptimisticUpdate(team.id, { kills: newKills, total: newKills + team.placement_pts });
+                // Background: persist to Supabase
+                setKills(game, team.id, newKills);
+              }}
             />
-            <StatControl 
-              label="Placements" 
-              icon={<MapPin className="w-3 h-3"/>} 
-              value={team.placement_pts} 
-              colorClass="text-neon-cyan" 
-              onUpdate={(v) => addPlacement(game, team.id, v - team.placement_pts)} 
+            <StatControl
+              label="Placements"
+              icon={<MapPin className="w-3 h-3"/>}
+              value={team.placement_pts}
+              colorClass="text-neon-cyan"
+              onUpdate={(v) => {
+                const newPts = Math.max(0, v);
+                onOptimisticUpdate(team.id, { placement_pts: newPts, total: team.kills + newPts });
+                setPlacement(game, team.id, newPts);
+              }}
             />
-            <StatControl 
-              label="Wins" 
-              icon={<Trophy className="w-3 h-3"/>} 
-              value={team.wins} 
-              colorClass="text-yellow-400" 
-              onUpdate={(v) => addWin(game, team.id, v - team.wins)} 
+            <StatControl
+              label="Wins"
+              icon={<Trophy className="w-3 h-3"/>}
+              value={team.wins}
+              colorClass="text-yellow-400"
+              onUpdate={(v) => {
+                const newWins = Math.max(0, v);
+                onOptimisticUpdate(team.id, { wins: newWins });
+                setWins(game, team.id, newWins);
+              }}
             />
           </div>
         </>
@@ -426,9 +446,17 @@ const AdminPanel = () => {
     return subscribeToTeams(activeGame, setTeams);
   }, [unlocked, activeGame]);
 
-  const handleAdd = useCallback(() => {
+  // Optimistic update — patches local state immediately so UI feels instant
+  const optimisticUpdate = useCallback((teamId: string, patch: Partial<TeamData>) => {
+    setTeams(prev =>
+      [...prev.map(t => t.id === teamId ? { ...t, ...patch } : t)]
+        .sort((a, b) => (b.total - a.total) || (b.wins - a.wins))
+    );
+  }, []);
+
+  const handleAdd = useCallback(async () => {
     if (!newName.trim()) return;
-    addTeam(activeGame, newName.trim(), newLogo || '🎮');
+    await addTeam(activeGame, newName.trim(), newLogo || '🎮');
     setNewName('');
     setNewLogo('🎮');
     setShowAdd(false);
@@ -551,7 +579,7 @@ const AdminPanel = () => {
             </div>
             <AnimatePresence mode="popLayout">
               {teams.map((team) => (
-                <TeamCard key={team.id} team={team} game={activeGame} />
+                <TeamCard key={team.id} team={team} game={activeGame} onOptimisticUpdate={optimisticUpdate} />
               ))}
             </AnimatePresence>
           </div>
