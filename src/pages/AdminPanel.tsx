@@ -475,7 +475,7 @@ const AdminPanel = () => {
     void refreshPendingPayments();
     const intervalId = window.setInterval(() => {
       void refreshPendingPayments();
-    }, 10000);
+    }, 30000);
     return () => window.clearInterval(intervalId);
   }, [unlocked, refreshPendingPayments]);
 
@@ -620,15 +620,17 @@ const AdminPanel = () => {
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
                     <div>
                       <p className="text-sm font-bold text-foreground">{team.teamName}</p>
-                      <p className="text-[11px] text-muted-foreground">{team.game} · UTR: {team.utrNumber || "-"}</p>
+                      <p className="text-[11px] text-muted-foreground">{team.game} | UTR: {team.utrNumber || "-"}</p>
                     </div>
                     <span className="text-xs text-primary font-bold">₹{ENTRY_FEE_INR}</span>
                   </div>
+                  <p className="text-[11px] text-muted-foreground mb-1">Rejection Reason (optional)</p>
                   <input
                     type="text"
                     value={rejectionReasons[team.id] || ""}
                     onChange={(e) => setRejectionReasons((prev) => ({ ...prev, [team.id]: e.target.value }))}
                     placeholder="Optional rejection reason"
+                    aria-label={`Rejection reason for ${team.teamName}`}
                     className="w-full mb-2 bg-background/60 border border-white/10 px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none"
                   />
                   <div className="flex gap-2">

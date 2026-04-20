@@ -1,5 +1,6 @@
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { supabase } from "./supabase";
+import { UTR_LENGTH } from "./config";
 
 type DatabaseError = {
   code?: string;
@@ -71,6 +72,11 @@ type TeamRecord = {
 };
 
 const normalizeEmail = (email: string) => email.trim().toLowerCase();
+export const isValidUTR = (utrNumber: string) => {
+  const normalizedUTR = utrNumber.trim();
+  return normalizedUTR.length === UTR_LENGTH && /^\d+$/.test(normalizedUTR);
+};
+export const UTR_VALIDATION_MESSAGE = `UTR (Unique Transaction Reference) must be exactly ${UTR_LENGTH} numeric digits from your payment confirmation.`;
 
 const uniqueStrings = (values: string[]) => {
   return Array.from(new Set(values.filter(Boolean)));
@@ -637,8 +643,8 @@ export const mockApi = {
     const client = ensureClient();
     const normalizedUTR = utrNumber.trim();
 
-    if (!/^\d{12}$/.test(normalizedUTR)) {
-      throw new Error("UTR must be exactly 12 numeric digits.");
+    if (!isValidUTR(normalizedUTR)) {
+      throw new Error(UTR_VALIDATION_MESSAGE);
     }
 
     const { data, error } = await client
