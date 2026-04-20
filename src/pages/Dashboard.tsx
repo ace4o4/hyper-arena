@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import confetti from "canvas-confetti";
-import { LogOut, Trophy, Crown, Shield, Users, ArrowRight, Gamepad2, AlertCircle, Plus, Check, Edit2, AlertTriangle, X, Upload, Image as ImageIcon, Trash2, Copy, Link2 } from "lucide-react";
+import { LogOut, Trophy, Crown, Shield, Users, ArrowRight, Gamepad2, AlertCircle, Plus, Check, Edit2, AlertTriangle, X, Upload, Image as ImageIcon, Trash2, Copy, Link2, Smartphone, QrCode, Clock3 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { Footer } from "@/components/Footer";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { mockApi } from "@/lib/mockApi";
+import { ENTRY_FEE_INR, UPI_ID, UPI_PAYEE_NAME } from "@/lib/config";
 import { motion, AnimatePresence } from "framer-motion";
 import { QRCodeSVG } from 'qrcode.react';
 
@@ -20,9 +21,10 @@ export default function Dashboard() {
   const { toast } = useToast();
   const [teamData, setTeamData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [isSubmittingUTR, setIsSubmittingUTR] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [copiedState, setCopiedState] = useState<"code" | "link" | null>(null);
+  const [utrInput, setUtrInput] = useState("");
 
   // Management State
   const [newPlayer, setNewPlayer] = useState({ roll_no: "", email: "", uid: "" });
@@ -36,6 +38,31 @@ export default function Dashboard() {
   const [isEditingTeam, setIsEditingTeam] = useState(false);
   const [editTeamInfo, setEditTeamInfo] = useState({ teamName: "", game: "", uid: "", roll_no: "" });
 
+  const runSuccessAnimation = () => {
+    setShowSuccessAnim(true);
+
+    const count = 200;
+    const defaults = {
+      origin: { y: 0.7 },
+      zIndex: 9999
+    };
+
+    function fire(particleRatio: number, opts: any) {
+      confetti({
+        ...defaults,
+        ...opts,
+        particleCount: Math.floor(count * particleRatio)
+      });
+    }
+
+    fire(0.25, { spread: 26, startVelocity: 55 });
+    fire(0.2, { spread: 60 });
+    fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8 });
+    fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2 });
+    fire(0.1, { spread: 120, startVelocity: 45 });
+    setTimeout(() => setShowSuccessAnim(false), 4000);
+  };
+
   useEffect(() => {
     const fetchTeam = async () => {
       try {
@@ -48,7 +75,12 @@ export default function Dashboard() {
 
         const team = await mockApi.getTeamByLeader(user.email ?? "");
         if (team) {
+          if (team.status === "confirmed" && teamData?.status !== "confirmed") {
+            runSuccessAnimation();
+            toast({ title: "Payment Confirmed", description: "Your registration is now complete." });
+          }
           setTeamData(team);
+          setUtrInput(team.utrNumber || "");
           if (team.players) setPlayers(team.players);
           if (team.substitute) setSubstitute(team.substitute);
         }
@@ -59,7 +91,30 @@ export default function Dashboard() {
       }
     };
     fetchTeam();
-  }, [navigate]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigate, toast]);
+
+  useEffect(() => {
+    if (teamData?.status !== "payment_submitted") return;
+
+    const intervalId = window.setInterval(async () => {
+      try {
+        const user = await mockApi.getCurrentUser();
+        if (!user) return;
+        const latestTeam = await mockApi.getTeamByLeader(user.email ?? "");
+        if (!latestTeam) return;
+        if (latestTeam.status === "confirmed" && teamData?.status !== "confirmed") {
+          runSuccessAnimation();
+          toast({ title: "Payment Confirmed", description: "Your registration is now complete." });
+        }
+        setTeamData(latestTeam);
+      } catch {
+        // silent polling failure
+      }
+    }, 8000);
+
+    return () => window.clearInterval(intervalId);
+  }, [teamData?.status, toast]);
 
   const handleLogout = () => {
     mockApi.logout();
@@ -146,40 +201,27 @@ export default function Dashboard() {
       toast({ title: "Update Error", description: err.message, variant: "destructive" });
     }
   };
-  const handlePayment = async () => {
-    setIsProcessingPayment(true);
+  const handleSubmitUTR = async () => {
+    const normalizedUTR = utrInput.trim();
+    if (!/^\d{12}$/.test(normalizedUTR)) {
+      toast({ title: "Invalid UTR", description: "UTR must be exactly 12 numeric digits.", variant: "destructive" });
+      return;
+    }
+
+    setIsSubmittingUTR(true);
     try {
-      const updated = await mockApi.confirmPayment(teamData.id);
+      const updated = await mockApi.submitUTR(teamData.id, normalizedUTR);
       setTeamData(updated);
-      setShowSuccessAnim(true);
-      
-      // Intense celebration confetti
-      const count = 200;
-      const defaults = {
-        origin: { y: 0.7 },
-        zIndex: 9999
-      };
-
-      function fire(particleRatio: number, opts: any) {
-        confetti({
-          ...defaults,
-          ...opts,
-          particleCount: Math.floor(count * particleRatio)
-        });
+      try {
+        await navigator.clipboard.writeText(normalizedUTR);
+      } catch {
+        // ignore clipboard failures
       }
-
-      fire(0.25, { spread: 26, startVelocity: 55 });
-      fire(0.2, { spread: 60 });
-      fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8 });
-      fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2 });
-      fire(0.1, { spread: 120, startVelocity: 45 });
-
-      setTimeout(() => setShowSuccessAnim(false), 4000);
-      toast({ title: "Payment Successful", description: "You are fully registered!" });
+      toast({ title: "UTR Submitted", description: "Waiting for admin verification." });
     } catch(err:any) {
        toast({ title: "Error", description: err.message, variant: "destructive" });
     }
-    setIsProcessingPayment(false);
+    setIsSubmittingUTR(false);
   }
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -211,6 +253,14 @@ export default function Dashboard() {
   };
 
   const inviteCode = teamData?.inviteCode || "";
+  const upiTxnNote = teamData?.id ? `TeamID-${teamData.id.slice(0, 8).toUpperCase()}` : "HyperArena";
+  const upiLink = `upi://pay?${new URLSearchParams({
+    pa: UPI_ID,
+    pn: UPI_PAYEE_NAME,
+    am: String(ENTRY_FEE_INR),
+    cu: "INR",
+    tn: upiTxnNote,
+  }).toString()}`;
   const inviteLink = (() => {
     if (!inviteCode) return "";
     const origin = typeof window !== "undefined" ? window.location.origin : "";
@@ -579,19 +629,62 @@ export default function Dashboard() {
           {teamData.status === 'payment_pending' && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-center">
                  <Card className="glass p-8 max-w-md w-full border-primary/30 text-center">
-                    <Trophy className="h-16 w-16 text-primary mx-auto mb-4" />
-                    <h2 className="text-2xl font-black mb-2">Tournament Entry Fee</h2>
-                    <p className="text-muted-foreground mb-6">Complete payment to finalize your squad's registration for {teamData.game}</p>
-                    <div className="text-4xl font-black text-primary mb-8">₹100</div>
-                    <Button 
-                        disabled={isProcessingPayment} 
-                        onClick={handlePayment} 
-                        className="w-full bg-primary hover:bg-primary/80 text-black font-bold h-12 text-lg"
-                    >
-                        {isProcessingPayment ? "Processing..." : "Pay Now"}
-                    </Button>
-                 </Card>
-              </motion.div>
+                    <QrCode className="h-16 w-16 text-primary mx-auto mb-4" />
+                     <h2 className="text-2xl font-black mb-2">Tournament Entry Fee</h2>
+                     <p className="text-muted-foreground mb-6">Complete payment to finalize your squad's registration for {teamData.game}</p>
+                     <div className="text-4xl font-black text-primary mb-4">₹{ENTRY_FEE_INR}</div>
+                     <p className="text-xs text-muted-foreground mb-5">UPI ID: {UPI_ID}</p>
+                     <div className="bg-white rounded-xl p-4 mb-5 inline-block">
+                       <QRCodeSVG value={upiLink} size={180} />
+                     </div>
+                     <Button
+                       onClick={() => window.location.assign(upiLink)}
+                       className="w-full bg-primary hover:bg-primary/80 text-black font-bold h-11 text-base mb-4"
+                     >
+                       <Smartphone className="mr-2 h-4 w-4" />
+                       Pay via UPI App
+                     </Button>
+                     <div className="text-left">
+                       <Label htmlFor="utr-input" className="text-xs text-muted-foreground">
+                         Enter UTR / Transaction ID
+                       </Label>
+                       <Input
+                         id="utr-input"
+                         inputMode="numeric"
+                         maxLength={12}
+                         className="mt-2 mb-3 text-center tracking-[0.3em]"
+                         placeholder="123456789012"
+                         value={utrInput}
+                         onChange={(e) => setUtrInput(e.target.value.replace(/\D/g, "").slice(0, 12))}
+                       />
+                       {teamData.paymentRejectedReason && (
+                         <p className="text-xs text-neon-red mb-3">Previous rejection: {teamData.paymentRejectedReason}</p>
+                       )}
+                       <Button
+                         disabled={isSubmittingUTR}
+                         onClick={handleSubmitUTR}
+                         className="w-full bg-neon-cyan hover:bg-neon-cyan/80 text-black font-bold"
+                       >
+                         {isSubmittingUTR ? "Submitting..." : "Submit UTR"}
+                       </Button>
+                     </div>
+                  </Card>
+               </motion.div>
+          )}
+
+          {teamData.status === "payment_submitted" && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-center">
+              <Card className="glass p-8 max-w-md w-full border-neon-cyan/40 text-center">
+                <Clock3 className="h-14 w-14 text-neon-cyan mx-auto mb-4" />
+                <h2 className="text-2xl font-black mb-2">Payment Under Verification</h2>
+                <p className="text-muted-foreground mb-4">
+                  Your UTR <span className="font-bold text-neon-cyan">{teamData.utrNumber || "-"}</span> is submitted.
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  We are checking your payment. This page auto-refreshes and updates once approved.
+                </p>
+              </Card>
+            </motion.div>
           )}
 
           {/* Confirmed State -> Standard Dashboard Tabs */}

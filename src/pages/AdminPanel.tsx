@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Shield, Lock, Target, Trophy, Zap, Plus, Minus,
   Trash2, RotateCcw, UserPlus, Crosshair, Wifi,
-  ChevronRight, Pencil, Check, X, MapPin,
+  ChevronRight, Pencil, Check, X, MapPin, IndianRupee, Loader2,
   Monitor, ExternalLink, Copy, CheckCheck,
 } from 'lucide-react';
 import {
@@ -11,6 +11,9 @@ import {
   subscribeToTeams, setKills, setPlacement, setWins,
   addTeam, updateTeam, resetTeam, deleteTeam,
 } from '@/lib/pointsTableApi';
+import { mockApi } from '@/lib/mockApi';
+import { useToast } from '@/hooks/use-toast';
+import { ENTRY_FEE_INR } from '@/lib/config';
 
 const ADMIN_PIN = '21468';
 
@@ -432,18 +435,84 @@ const BroadcastPanel = () => {
 // Main Admin Panel
 // ─────────────────────────────────────────
 const AdminPanel = () => {
+  const { toast } = useToast();
   const [unlocked, setUnlocked] = useState(false);
   const [activeGame, setActiveGame] = useState<Game>('bgmi');
   const [teams, setTeams] = useState<TeamData[]>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [newName, setNewName] = useState('');
   const [newLogo, setNewLogo] = useState('🎮');
+  const [paymentTeams, setPaymentTeams] = useState<any[]>([]);
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [paymentActionTeamId, setPaymentActionTeamId] = useState<string | null>(null);
+  const [rejectionReasons, setRejectionReasons] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!unlocked) return;
     setTeams([]);
     return subscribeToTeams(activeGame, setTeams);
   }, [unlocked, activeGame]);
+
+  const refreshPendingPayments = useCallback(async () => {
+    setPaymentLoading(true);
+    try {
+      const pendingTeams = await mockApi.listTeamsByStatus(["payment_submitted"]);
+      setPaymentTeams(pendingTeams);
+    } catch (error: any) {
+      setPaymentTeams([]);
+      toast({
+        title: "Payment Queue Error",
+        description: error?.message || "Could not fetch pending payments.",
+        variant: "destructive",
+      });
+    } finally {
+      setPaymentLoading(false);
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    if (!unlocked) return;
+    void refreshPendingPayments();
+    const intervalId = window.setInterval(() => {
+      void refreshPendingPayments();
+    }, 10000);
+    return () => window.clearInterval(intervalId);
+  }, [unlocked, refreshPendingPayments]);
+
+  const handleConfirmPayment = useCallback(async (teamId: string) => {
+    setPaymentActionTeamId(teamId);
+    try {
+      await mockApi.confirmPayment(teamId);
+      toast({ title: "Payment Confirmed" });
+      await refreshPendingPayments();
+    } catch (error: any) {
+      toast({
+        title: "Confirm Failed",
+        description: error?.message || "Could not confirm payment.",
+        variant: "destructive",
+      });
+    } finally {
+      setPaymentActionTeamId(null);
+    }
+  }, [refreshPendingPayments, toast]);
+
+  const handleRejectPayment = useCallback(async (teamId: string) => {
+    setPaymentActionTeamId(teamId);
+    try {
+      await mockApi.rejectPayment(teamId, rejectionReasons[teamId]);
+      toast({ title: "Payment Rejected", description: "Team moved back to payment pending." });
+      setRejectionReasons((prev) => ({ ...prev, [teamId]: "" }));
+      await refreshPendingPayments();
+    } catch (error: any) {
+      toast({
+        title: "Reject Failed",
+        description: error?.message || "Could not reject payment.",
+        variant: "destructive",
+      });
+    } finally {
+      setPaymentActionTeamId(null);
+    }
+  }, [refreshPendingPayments, rejectionReasons, toast]);
 
   // Optimistic update: instantly patches admin panel UI.
   // OBS Overlay is NOT affected — it reads directly from Supabase.
@@ -528,6 +597,62 @@ const AdminPanel = () => {
               <div className="text-[9px] uppercase tracking-widest text-muted-foreground mt-1">{s.label}</div>
             </div>
           ))}
+        </div>
+
+        <div className="mb-6 glass border border-primary/20 p-4"
+          style={{ clipPath:'polygon(0 0,calc(100% - 16px) 0,100% 16px,100% 100%,16px 100%,0 calc(100% - 16px))' }}>
+          <div className="flex items-center gap-2 mb-3">
+            <IndianRupee className="w-4 h-4 text-primary shrink-0" />
+            <h2 className="font-orbitron font-bold text-xs tracking-widest text-primary uppercase">Pending Payments</h2>
+            <span className="ml-auto text-[10px] text-muted-foreground">Entry Fee ₹{ENTRY_FEE_INR}</span>
+          </div>
+
+          {paymentLoading ? (
+            <div className="flex items-center justify-center py-8 text-muted-foreground text-xs gap-2">
+              <Loader2 className="w-4 h-4 animate-spin" /> Fetching pending payments...
+            </div>
+          ) : paymentTeams.length === 0 ? (
+            <p className="text-xs text-muted-foreground py-4">No payment submissions in queue.</p>
+          ) : (
+            <div className="space-y-3">
+              {paymentTeams.map((team) => (
+                <div key={team.id} className="border border-white/10 rounded-md p-3 bg-black/20">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+                    <div>
+                      <p className="text-sm font-bold text-foreground">{team.teamName}</p>
+                      <p className="text-[11px] text-muted-foreground">{team.game} · UTR: {team.utrNumber || "-"}</p>
+                    </div>
+                    <span className="text-xs text-primary font-bold">₹{ENTRY_FEE_INR}</span>
+                  </div>
+                  <input
+                    type="text"
+                    value={rejectionReasons[team.id] || ""}
+                    onChange={(e) => setRejectionReasons((prev) => ({ ...prev, [team.id]: e.target.value }))}
+                    placeholder="Optional rejection reason"
+                    className="w-full mb-2 bg-background/60 border border-white/10 px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none"
+                  />
+                  <div className="flex gap-2">
+                    <motion.button
+                      whileTap={{ scale: 0.97 }}
+                      onClick={() => handleConfirmPayment(team.id)}
+                      disabled={paymentActionTeamId === team.id}
+                      className="flex-1 py-2 bg-primary/20 border border-primary/40 text-primary text-xs font-bold hover:bg-primary/30 transition-all disabled:opacity-50"
+                    >
+                      {paymentActionTeamId === team.id ? "PROCESSING..." : "CONFIRM"}
+                    </motion.button>
+                    <motion.button
+                      whileTap={{ scale: 0.97 }}
+                      onClick={() => handleRejectPayment(team.id)}
+                      disabled={paymentActionTeamId === team.id}
+                      className="flex-1 py-2 bg-destructive/20 border border-destructive/40 text-destructive text-xs font-bold hover:bg-destructive/30 transition-all disabled:opacity-50"
+                    >
+                      REJECT
+                    </motion.button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* ── Add Team ── */}
