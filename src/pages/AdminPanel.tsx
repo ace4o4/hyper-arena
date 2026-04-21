@@ -451,7 +451,14 @@ const AttendanceScanner = () => {
   const [scanError, setScanError] = useState('');
   const [marking, setMarking] = useState(false);
   const [cameraActive, setCameraActive] = useState(false);
+  const [cameraLoading, setCameraLoading] = useState(false);
   const scannerRef = useRef<{ stop: () => Promise<void> } | null>(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   const processToken = useCallback(async (token: string) => {
     const trimmed = token.trim();
@@ -469,34 +476,62 @@ const AttendanceScanner = () => {
     }
   }, []);
 
-  const startCamera = useCallback(async () => {
-    try {
-      const { Html5Qrcode } = await import('html5-qrcode');
-      const qrScanner = new Html5Qrcode('qr-scanner-container');
-      scannerRef.current = qrScanner as unknown as { stop: () => Promise<void> };
-      await qrScanner.start(
-        { facingMode: 'environment' },
-        { fps: 10, qrbox: { width: 250, height: 250 } },
-        (decodedText) => {
-          void qrScanner.stop().catch(() => {});
-          scannerRef.current = null;
-          setCameraActive(false);
-          void processToken(decodedText);
-        },
-        () => { /* ignore non-fatal scan errors */ },
-      );
-      setCameraActive(true);
-    } catch (err: unknown) {
-      toast({ title: 'Camera Error', description: (err as Error)?.message || 'Could not start camera.', variant: 'destructive' });
-    }
-  }, [processToken, toast]);
-
   const stopCamera = useCallback(() => {
     if (scannerRef.current) {
       scannerRef.current.stop().catch(() => {});
       scannerRef.current = null;
     }
-    setCameraActive(false);
+    if (mountedRef.current) setCameraActive(false);
+  }, []);
+
+  // Start the scanner AFTER the container is visible in the DOM (useEffect fires post-render)
+  useEffect(() => {
+    if (!cameraActive) return;
+
+    let scanner: { stop: () => Promise<void>; start: (...args: unknown[]) => Promise<void> } | null = null;
+
+    const initScanner = async () => {
+      try {
+        const { Html5Qrcode } = await import('html5-qrcode');
+        if (!mountedRef.current) return;
+        scanner = new Html5Qrcode('qr-scanner-container') as unknown as typeof scanner;
+        scannerRef.current = scanner as { stop: () => Promise<void> };
+        await scanner!.start(
+          { facingMode: 'environment' },
+          { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1 },
+          (decodedText: string) => {
+            void scanner?.stop().catch(() => {});
+            scannerRef.current = null;
+            if (mountedRef.current) {
+              setCameraActive(false);
+              void processToken(decodedText);
+            }
+          },
+          () => { /* ignore non-fatal scan errors */ },
+        );
+        if (mountedRef.current) setCameraLoading(false);
+      } catch (err: unknown) {
+        if (mountedRef.current) {
+          setCameraActive(false);
+          setCameraLoading(false);
+          toast({ title: 'Camera Error', description: (err as Error)?.message || 'Could not start camera.', variant: 'destructive' });
+        }
+      }
+    };
+
+    void initScanner();
+
+    return () => {
+      if (scanner) {
+        scanner.stop().catch(() => {});
+        scannerRef.current = null;
+      }
+    };
+  }, [cameraActive, processToken, toast]);
+
+  const startCamera = useCallback(() => {
+    setCameraLoading(true);
+    setCameraActive(true);
   }, []);
 
   useEffect(() => () => { stopCamera(); }, [stopCamera]);
@@ -534,8 +569,20 @@ const AttendanceScanner = () => {
         <span className="ml-auto text-[9px] uppercase tracking-widest text-muted-foreground">Scan or paste QR token</span>
       </div>
 
-      {/* Camera scanner container (hidden until active) */}
-      <div id="qr-scanner-container" className={`w-full rounded-lg overflow-hidden mb-3 ${cameraActive ? 'block' : 'hidden'}`} style={{ height: 300 }} />
+      {/* Camera scanner container — always in DOM, height-animated to avoid display:none flicker */}
+      <div
+        className="w-full rounded-lg mb-3 transition-[height] duration-300 relative"
+        style={{ height: cameraActive ? 320 : 0, overflow: 'hidden' }}
+      >
+        <div id="qr-scanner-container" className="w-full h-full" />
+        {cameraLoading && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60">
+            <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+              className="w-8 h-8 border-2 border-yellow-400/40 border-t-yellow-400 rounded-full mb-2" />
+            <p className="text-[10px] uppercase tracking-widest text-yellow-400">Starting camera…</p>
+          </div>
+        )}
+      </div>
 
       {!scanResult && (
         <>
@@ -558,13 +605,14 @@ const AttendanceScanner = () => {
           <div className="flex justify-center">
             <motion.button whileTap={{ scale: 0.95 }}
               onClick={cameraActive ? stopCamera : startCamera}
-              className={`flex items-center gap-2 px-4 py-2 text-[10px] font-bold uppercase tracking-widest border transition-colors ${
+              disabled={cameraLoading}
+              className={`flex items-center gap-2 px-4 py-2 text-[10px] font-bold uppercase tracking-widest border transition-colors disabled:opacity-60 ${
                 cameraActive
                   ? 'border-destructive/40 text-destructive hover:bg-destructive/10'
                   : 'border-yellow-400/40 text-yellow-400 hover:bg-yellow-400/10'
               }`}>
               <Camera className="w-3 h-3" />
-              {cameraActive ? 'Stop Camera' : 'Open Camera'}
+              {cameraLoading ? 'Starting…' : cameraActive ? 'Stop Camera' : 'Open Camera'}
             </motion.button>
           </div>
         </>
