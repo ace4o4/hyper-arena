@@ -426,6 +426,7 @@ export default function Registration() {
                         </Button>
                       </div>
 
+                      {/* Logo upload feature temporarily disabled as requested
                       <div className="glass rounded-xl p-6 border border-border/20">
                         <Label className="text-foreground mb-4 flex items-center gap-2">
                           <ImageIcon className="h-4 w-4 text-primary" /> Team Logo (Optional)
@@ -462,6 +463,7 @@ export default function Registration() {
                           />
                         </div>
                       </div>
+                      */}
 
                       <div className="glass rounded-xl p-6 border border-border/20">
                         <Label className="text-foreground mb-2 flex items-center gap-2">

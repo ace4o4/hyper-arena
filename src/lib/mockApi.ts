@@ -18,7 +18,7 @@ type TeamMember = {
   uid: string;
 };
 
-type TeamStatus = "pending_players" | "payment_pending" | "payment_review" | "confirmed" | string;
+type TeamStatus = "pending_players" | "payment_pending" | "payment_review" | "confirmed" | "payment_rejected" | string;
 
 type TeamRow = {
   id: string;
@@ -39,6 +39,9 @@ type TeamRow = {
   member_emails: string[] | null;
   member_uids: string[] | null;
   member_user_ids: string[] | null;
+  utr_number: string | null;
+  payment_screenshot_url: string | null;
+  rejection_note: string | null;
   created_at: string;
   updated_at: string | null;
 };
@@ -62,6 +65,9 @@ export type TeamRecord = {
   memberEmails: string[];
   memberUids: string[];
   memberUserIds: string[];
+  utrNumber: string | null;
+  paymentScreenshotUrl: string | null;
+  rejectionNote: string | null;
   createdAt: string;
   updatedAt: string | null;
 };
@@ -130,6 +136,9 @@ const toTeamRecord = (row: TeamRow): TeamRecord => {
     memberEmails: row.member_emails || [],
     memberUids: row.member_uids || [],
     memberUserIds: row.member_user_ids || [],
+    utrNumber: row.utr_number ?? null,
+    paymentScreenshotUrl: row.payment_screenshot_url ?? null,
+    rejectionNote: row.rejection_note ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -707,8 +716,62 @@ export const mockApi = {
   },
 
   reviewTeamPayment: async (teamId: string, decision: PaymentReviewDecision) => {
-    const nextStatus = decision === "approve" ? "confirmed" : "payment_pending";
-    return mockApi.updateTeamInfo(teamId, { status: nextStatus });
+    const client = ensureClient();
+    // Approved → confirmed, Rejected → payment_rejected (user sees a rejection message)
+    const nextStatus = decision === "approve" ? "confirmed" : "payment_rejected";
+
+    // Minimal UPDATE — no .select() chained.
+    // Admin panel only needs teamId to remove the entry from the queue.
+    const { error } = await client
+      .from("teams")
+      .update({ status: nextStatus, updated_at: new Date().toISOString() })
+      .eq("id", teamId)
+      .eq("status", "payment_review"); // Guard: only targets payment_review rows
+
+    if (error) throw new Error(mapDatabaseError(error, "Could not update payment status."));
+    return { id: teamId, status: nextStatus };
+  },
+
+  submitPaymentProof: async (teamId: string, utrNumber: string, screenshotUrl: string | null) => {
+    const client = ensureClient();
+
+    const { data, error } = await client
+      .from("teams")
+      .update({
+        status: "payment_review",
+        utr_number: utrNumber.trim(),
+        payment_screenshot_url: screenshotUrl,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", teamId)
+      .select("*")
+      .single();
+
+    if (error) throw new Error(mapDatabaseError(error, "Could not submit payment proof."));
+    return toTeamRecord(data as TeamRow);
+  },
+
+  uploadPaymentScreenshot: async (teamId: string, file: File): Promise<string> => {
+    const client = ensureClient();
+
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${teamId}-${Date.now()}.${fileExt}`;
+
+    const { error: uploadError } = await client
+      .storage
+      .from('payment-screenshots')
+      .upload(fileName, file, { upsert: true });
+
+    if (uploadError) {
+      throw new Error(`Failed to upload screenshot: ${uploadError.message}`);
+    }
+
+    const { data: { publicUrl } } = client
+      .storage
+      .from('payment-screenshots')
+      .getPublicUrl(fileName);
+
+    return publicUrl;
   },
 
   uploadTeamLogo: async (teamId: string, file: File): Promise<string> => {

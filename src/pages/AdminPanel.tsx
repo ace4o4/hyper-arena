@@ -572,7 +572,21 @@ const AdminPanel = () => {
                     <div>
                       <p className="font-orbitron font-bold text-sm text-foreground">{team.teamName}</p>
                       <p className="text-[11px] text-muted-foreground">{team.game} • Leader: {team.leader.uid}</p>
-                      <p className="text-[10px] text-muted-foreground">Requested: {new Date(team.updatedAt || team.createdAt).toLocaleString()}</p>
+                      <p className="text-[10px] text-muted-foreground mb-2">Requested: {new Date(team.updatedAt || team.createdAt).toLocaleString()}</p>
+                      
+                      <div className="flex flex-col gap-2 items-start mt-2">
+                        {team.utrNumber && (
+                           <div className="flex items-center gap-1.5 bg-black/40 px-2 py-1.5 rounded border border-white/10">
+                               <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">UTR</span>
+                               <span className="text-xs font-mono text-neon-cyan select-all">{team.utrNumber}</span>
+                           </div>
+                        )}
+                        {team.paymentScreenshotUrl && (
+                           <a href={team.paymentScreenshotUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-[10px] uppercase font-bold text-primary hover:bg-primary/20 transition-colors bg-primary/10 px-2 py-1.5 rounded border border-primary/30">
+                               <ExternalLink className="w-3 h-3" /> View Proof
+                           </a>
+                        )}
+                      </div>
                     </div>
                     <div className="flex gap-2">
                       <motion.button whileTap={{ scale: 0.95 }}

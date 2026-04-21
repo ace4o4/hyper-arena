@@ -20,6 +20,8 @@ export default function Dashboard() {
   const [teamData, setTeamData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [utrNumber, setUtrNumber] = useState("");
+  const [paymentScreenshotFile, setPaymentScreenshotFile] = useState<File | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [copiedState, setCopiedState] = useState<"code" | "link" | null>(null);
 
@@ -183,9 +185,25 @@ export default function Dashboard() {
       return;
     }
 
+    if (!utrNumber.trim()) {
+      toast({ title: "UTR Missing", description: "Please enter the UTR / Transaction ID.", variant: "destructive" });
+      return;
+    }
+
+    if (!paymentScreenshotFile) {
+       toast({ title: "Screenshot Missing", description: "Please upload your payment screenshot.", variant: "destructive" });
+       return;
+    }
+
     setIsProcessingPayment(true);
     try {
-      const updated = await mockApi.updateTeamInfo(teamData.id, { status: "payment_review" });
+      let screenshotUrl = null;
+      if (paymentScreenshotFile) {
+        toast({ title: "Uploading...", description: "Uploading payment screenshot." });
+        screenshotUrl = await mockApi.uploadPaymentScreenshot(teamData.id, paymentScreenshotFile);
+      }
+      
+      const updated = await mockApi.submitPaymentProof(teamData.id, utrNumber, screenshotUrl);
       setTeamData(updated);
       toast({ title: "Payment Submitted", description: "Your payment is under verification. Tickets unlock after approval." });
     } catch(err:any) {
@@ -399,11 +417,11 @@ export default function Dashboard() {
                     </div>
                  </div>
                       <div className="flex justify-end mt-4 gap-2">
-                         {teamData.logo && (
+                         {/* teamData.logo && (
                            <Button variant="outline" size="sm" onClick={handleRemoveLogo} className="border-neon-red text-neon-red hover:bg-neon-red/10">
                              <Trash2 className="h-4 w-4 mr-2" /> Remove Logo
                            </Button>
-                         )}
+                         ) */}
                          <Button onClick={handleSaveTeamEdit} className="bg-primary text-black hover:bg-primary/80">Save Changes</Button>
                       </div>
               </div>
@@ -411,8 +429,7 @@ export default function Dashboard() {
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-4">
                 <div 
-                  className="w-16 h-16 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center relative group cursor-pointer overflow-hidden"
-                  onClick={() => document.getElementById('dash-logo-upload')?.click()}
+                  className="w-16 h-16 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center relative overflow-hidden"
                 >
                   {teamData.logo ? (
                     <img src={teamData.logo} alt="Logo" className="w-full h-full object-cover" />
@@ -420,12 +437,11 @@ export default function Dashboard() {
                     <Shield className="h-8 w-8 text-primary" />
                   )}
                   
-                  {/* Badge Indicator */}
+                  {/* Upload feature disabled as requested
                   <div className="absolute bottom-0 right-0 bg-primary p-1 rounded-tl-lg shadow-[0_0_10px_rgba(var(--primary),0.5)]">
                     <Upload className="h-2 w-2 text-void-black" />
                   </div>
 
-                  {/* Hover Overlay */}
                   <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center">
                     <Upload className="h-5 w-5 text-primary mb-1" />
                     <span className="text-[8px] text-white font-bold uppercase">Update Logo</span>
@@ -437,6 +453,7 @@ export default function Dashboard() {
                     accept="image/*" 
                     onChange={handleLogoUpload}
                   />
+                  */}
                 </div>
                 <div>
                   <h2 className="text-2xl font-black text-gradient-primary flex items-center gap-2">
@@ -671,6 +688,45 @@ export default function Dashboard() {
                         >
                           Open UPI App
                         </a>
+                        
+                        {/* Mock UPI Image for reference */}
+                        <div className="mt-4 mb-6 border border-white/10 rounded-lg overflow-hidden bg-black/50 p-2">
+                           <p className="text-xs text-muted-foreground mb-2">Example Screenshot</p>
+                           <img src="/src/assets/mock_upi_payment.png" alt="Mock UPI Reference" className="w-full h-auto rounded border border-white/5 mix-blend-screen max-h-[300px] object-contain" />
+                        </div>
+
+                        <div className="space-y-4 mb-6 text-left">
+                            <div>
+                              <Label className="text-xs text-muted-foreground">UTR / Transaction ID</Label>
+                              <Input 
+                                placeholder="Enter 12-digit UTR number" 
+                                value={utrNumber} 
+                                onChange={(e) => setUtrNumber(e.target.value)}
+                                className="mt-1 glass border-border/30"
+                              />
+                            </div>
+                            <div>
+                               <Label className="text-xs text-muted-foreground">Upload Payment Screenshot</Label>
+                               <div className="mt-1 flex items-center justify-center w-full">
+                                  <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-border/30 border-dashed rounded-lg cursor-pointer bg-background/50 hover:bg-background/80 transition-colors">
+                                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                          <Upload className="w-8 h-8 mb-3 text-muted-foreground" />
+                                          <p className="mb-2 text-sm text-muted-foreground">
+                                             <span className="font-semibold text-primary">Click to upload</span> or drag and drop
+                                          </p>
+                                          <p className="text-xs text-muted-foreground max-w-[200px] text-center truncate">
+                                            {paymentScreenshotFile ? paymentScreenshotFile.name : "JPEG, PNG up to 5MB"}
+                                          </p>
+                                      </div>
+                                      <input type="file" className="hidden" accept="image/*" onChange={(e) => {
+                                          if (e.target.files && e.target.files[0]) {
+                                              setPaymentScreenshotFile(e.target.files[0]);
+                                          }
+                                      }} />
+                                  </label>
+                               </div>
+                            </div>
+                        </div>
                       </>
                     )}
 
@@ -714,6 +770,36 @@ export default function Dashboard() {
                   Payment submission received. Your registration will be confirmed after admin verification.
                 </p>
                 <p className="text-xs text-muted-foreground">Once verified, QR tickets will appear automatically in this dashboard.</p>
+              </Card>
+            </motion.div>
+          )}
+
+          {/* Payment Rejected State */}
+          {teamData.status === 'payment_rejected' && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-center">
+              <Card className="glass p-8 max-w-md w-full border-neon-red/40 text-center">
+                <AlertTriangle className="h-14 w-14 text-neon-red mx-auto mb-4" />
+                <h2 className="text-2xl font-black mb-2 text-neon-red">Payment Rejected</h2>
+                <p className="text-white/80 mb-4">
+                  We couldn't verify your payment using the provided UTR and screenshot. Please ensure the payment was successful and submit correct details.
+                </p>
+                <Button 
+                     onClick={async () => {
+                        setLoading(true);
+                        try {
+                           const updated = await mockApi.updateTeamInfo(teamData.id, { status: "payment_pending" });
+                           setTeamData(updated);
+                           setUtrNumber("");
+                           setPaymentScreenshotFile(null);
+                        } catch(err:any) {
+                           toast({ title: "Error", description: err.message, variant: "destructive" });
+                        }
+                        setLoading(false);
+                     }}
+                     className="w-full bg-neon-red hover:bg-neon-red/80 text-white font-bold h-11"
+                >
+                    Try Submitting Payment Proof Again
+                </Button>
               </Card>
             </motion.div>
           )}
