@@ -19,6 +19,7 @@ interface FormErrors {
   leaderEmail?: string;
   leaderRollNo?: string;
   leaderUID?: string;
+  leaderPhone?: string;
 }
 
 export default function Registration() {
@@ -42,6 +43,7 @@ export default function Registration() {
   const [teamName, setTeamName] = useState("");
   const [leaderEmail, setLeaderEmail] = useState("");
   const [leaderRollNo, setLeaderRollNo] = useState("");
+  const [leaderPhone, setLeaderPhone] = useState("");
   const [leaderUID, setLeaderUID] = useState("");
   const [teamLogoPreview, setTeamLogoPreview] = useState<string | null>(null);
   const [teamLogoFile, setTeamLogoFile] = useState<File | null>(null);
@@ -105,8 +107,13 @@ export default function Registration() {
       isValid = false;
     }
     
-    if (!leaderRollNo || !/^\d+$/.test(leaderRollNo)) {
-      newErrors.leaderRollNo = "Valid numeric Roll No required";
+    if (!leaderRollNo || !/^\d{10}$/.test(leaderRollNo)) {
+      newErrors.leaderRollNo = "Roll No must be exactly 10 digits";
+      isValid = false;
+    }
+
+    if (!leaderPhone || !/^\d{10}$/.test(leaderPhone)) {
+      newErrors.leaderPhone = "Valid 10-digit phone number required";
       isValid = false;
     }
 
@@ -150,7 +157,8 @@ export default function Registration() {
           roll_no: leaderRollNo,
           uid: leaderUID,
           email: leaderEmail,
-        }
+        },
+        leaderPhone,
       });
 
       // Cool confetti burst
@@ -194,8 +202,8 @@ export default function Registration() {
       return;
     }
 
-    if (!memberRollNo || !/^\d+$/.test(memberRollNo)) {
-      toast({ title: "Invalid Roll No", description: "Roll Number must be numeric.", variant: "destructive" });
+    if (!memberRollNo || !/^\d{10}$/.test(memberRollNo)) {
+      toast({ title: "Invalid Roll No", description: "Roll Number must be exactly 10 numeric digits.", variant: "destructive" });
       return;
     }
 
@@ -518,6 +526,21 @@ export default function Registration() {
                               className={`glass border-border/30 focus:border-primary ${errors.leaderUID ? 'border-neon-red' : ''}`}
                             />
                             <ErrorMessage message={errors.leaderUID} />
+                          </div>
+                          <div>
+                            <Label className="text-foreground mb-2 flex items-center gap-2">
+                              <Gamepad2 className="h-4 w-4" /> Phone Number *
+                            </Label>
+                            <Input
+                              value={leaderPhone}
+                              onChange={(e) => {
+                                setLeaderPhone(e.target.value);
+                                clearFieldError('leaderPhone');
+                              }}
+                              placeholder="10-digit Mobile Number"
+                              className={`glass border-border/30 focus:border-primary ${errors.leaderPhone ? 'border-neon-red' : ''}`}
+                            />
+                            <ErrorMessage message={errors.leaderPhone} />
                           </div>
                           <div>
                             <Label className="text-foreground mb-2 flex items-center gap-2">

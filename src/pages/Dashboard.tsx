@@ -36,7 +36,7 @@ export default function Dashboard() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isEditingTeam, setIsEditingTeam] = useState(false);
-  const [editTeamInfo, setEditTeamInfo] = useState({ teamName: "", game: "", uid: "", roll_no: "" });
+  const [editTeamInfo, setEditTeamInfo] = useState({ teamName: "", game: "", uid: "", roll_no: "", leaderPhone: "" });
 
   const paymentAmount = Number(import.meta.env.VITE_PAYMENT_AMOUNT || "100");
   const upiId = import.meta.env.VITE_UPI_ID || "your-upi-id@bank";
@@ -52,7 +52,7 @@ export default function Dashboard() {
           return;
         }
         setCurrentUserId(user.uid);
-
+        setLeaderEmail(user.email);
         const team = await mockApi.getTeamByLeader(user.email ?? "");
         if (team) {
           setTeamData(team);
@@ -112,9 +112,9 @@ export default function Dashboard() {
       return;
     }
 
-    // 3. Roll Number validation (numeric)
-    if (!/^\d+$/.test(roll_no)) {
-      toast({ title: "Invalid Roll No", description: "Roll Number must be numeric.", variant: "destructive" });
+    // 3. Roll Number validation (numeric & 10 digits)
+    if (!/^\d{10}$/.test(roll_no)) {
+      toast({ title: "Invalid Roll No", description: "Roll Number must be exactly 10 digits.", variant: "destructive" });
       return;
     }
 
@@ -168,7 +168,12 @@ export default function Dashboard() {
   const handleSaveTeamEdit = async () => {
     try {
       const leaderPayload = { ...teamData.leader, uid: editTeamInfo.uid, roll_no: editTeamInfo.roll_no };
-      const updated = await mockApi.updateTeamInfo(teamData.id, { teamName: editTeamInfo.teamName, game: editTeamInfo.game, leader: leaderPayload });
+      const updated = await mockApi.updateTeamInfo(teamData.id, { 
+        teamName: editTeamInfo.teamName, 
+        game: editTeamInfo.game, 
+        leader: leaderPayload,
+        leaderPhone: editTeamInfo.leaderPhone
+      });
       setTeamData(updated);
       setIsEditingTeam(false);
       toast({ title: "Team Details Updated" });
@@ -416,7 +421,11 @@ export default function Dashboard() {
                       <Label className="text-xs text-muted-foreground">Leader Roll No</Label>
                       <Input value={editTeamInfo.roll_no} onChange={e=>setEditTeamInfo({...editTeamInfo, roll_no: e.target.value})} className="glass border-border/30 h-9 text-sm" />
                     </div>
-                 </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Leader Phone Number</Label>
+                      <Input value={editTeamInfo.leaderPhone} onChange={e=>setEditTeamInfo({...editTeamInfo, leaderPhone: e.target.value})} className="glass border-border/30 h-9 text-sm" />
+                    </div>
+                  </div>
                       <div className="flex justify-end mt-4 gap-2">
                          {/* teamData.logo && (
                            <Button variant="outline" size="sm" onClick={handleRemoveLogo} className="border-neon-red text-neon-red hover:bg-neon-red/10">
@@ -461,7 +470,13 @@ export default function Dashboard() {
                       {teamData.teamName}
                       {teamData.status === 'pending_players' && (
                           <button onClick={() => {
-                             setEditTeamInfo({teamName: teamData.teamName, game: teamData.game, uid: teamData.leader.uid, roll_no: teamData.leader.roll_no});
+                             setEditTeamInfo({
+                               teamName: teamData.teamName, 
+                               game: teamData.game, 
+                               uid: teamData.leader.uid, 
+                               roll_no: teamData.leader.roll_no,
+                               leaderPhone: teamData.leaderPhone || ""
+                             });
                              setIsEditingTeam(true);
                           }} className="text-neon-cyan hover:text-white transition-colors">
                               <Edit2 className="h-4 w-4" />
@@ -471,6 +486,11 @@ export default function Dashboard() {
                   <p className="text-muted-foreground flex items-center gap-2">
                     <Gamepad2 className="h-4 w-4" /> {teamData.game} | Leader: {teamData.leader.uid}
                   </p>
+                  {teamData.leaderPhone && (
+                    <p className="text-[10px] text-primary/70 uppercase tracking-widest mt-1">
+                      📱 Contact: {teamData.leaderPhone}
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-3">

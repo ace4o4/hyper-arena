@@ -42,6 +42,7 @@ type TeamRow = {
   utr_number: string | null;
   payment_screenshot_url: string | null;
   rejection_note: string | null;
+  leader_phone: string | null;
   created_at: string;
   updated_at: string | null;
 };
@@ -68,6 +69,7 @@ export type TeamRecord = {
   utrNumber: string | null;
   paymentScreenshotUrl: string | null;
   rejectionNote: string | null;
+  leaderPhone: string | null;
   createdAt: string;
   updatedAt: string | null;
 };
@@ -139,6 +141,7 @@ const toTeamRecord = (row: TeamRow): TeamRecord => {
     utrNumber: row.utr_number ?? null,
     paymentScreenshotUrl: row.payment_screenshot_url ?? null,
     rejectionNote: row.rejection_note ?? null,
+    leaderPhone: row.leader_phone ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -366,6 +369,7 @@ export const mockApi = {
       uid: string;
       email: string;
     };
+    leaderPhone?: string | null;
     tournamentId?: string | null;
   }) => {
     const client = ensureClient();
@@ -403,6 +407,7 @@ export const mockApi = {
       leader_email: normalizeEmail(teamData.leaderEmail),
       leader: leaderMember,
       logo: null,
+      leader_phone: teamData.leaderPhone ?? null,
       invite_code: inviteCode,
       invite_code_lower: inviteCode.toLowerCase(),
       invite_link: generateInviteLink(inviteCode, teamData.game, teamData.tournamentId ?? null),
@@ -623,6 +628,7 @@ export const mockApi = {
     if (updates.tournamentId !== undefined) payload.tournament_id = updates.tournamentId;
     if (updates.leader !== undefined) payload.leader = updates.leader;
     if (updates.leaderEmail !== undefined) payload.leader_email = normalizeEmail(updates.leaderEmail);
+    if (updates.leaderPhone !== undefined) payload.leader_phone = updates.leaderPhone;
     if (updates.logo !== undefined) payload.logo = updates.logo;
     if (updates.players !== undefined) payload.players = updates.players;
     if (updates.substitute !== undefined) payload.substitute = updates.substitute;
