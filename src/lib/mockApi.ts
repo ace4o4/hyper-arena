@@ -1,5 +1,6 @@
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { supabase } from "./supabase";
+import { buildQrToken } from "./qrToken";
 
 type DatabaseError = {
   code?: string;
@@ -42,7 +43,6 @@ type TeamRow = {
   utr_number: string | null;
   payment_screenshot_url: string | null;
   rejection_note: string | null;
-  leader_phone: string | null;
   created_at: string;
   updated_at: string | null;
 };
@@ -69,7 +69,6 @@ export type TeamRecord = {
   utrNumber: string | null;
   paymentScreenshotUrl: string | null;
   rejectionNote: string | null;
-  leaderPhone: string | null;
   createdAt: string;
   updatedAt: string | null;
 };
@@ -141,7 +140,6 @@ const toTeamRecord = (row: TeamRow): TeamRecord => {
     utrNumber: row.utr_number ?? null,
     paymentScreenshotUrl: row.payment_screenshot_url ?? null,
     rejectionNote: row.rejection_note ?? null,
-    leaderPhone: row.leader_phone ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -200,6 +198,8 @@ const generateUniqueInviteCode = async () => {
 
   throw new Error("Could not generate a unique invite code. Please retry.");
 };
+
+const DASHBOARD_URL = "https://cybersoulz.tech/dashboard";
 
 export const mockApi = {
   // Authentication
@@ -726,8 +726,16 @@ export const mockApi = {
     // Approved → confirmed, Rejected → payment_rejected (user sees a rejection message)
     const nextStatus = decision === "approve" ? "confirmed" : "payment_rejected";
 
-    // Minimal UPDATE — no .select() chained.
-    // Admin panel only needs teamId to remove the entry from the queue.
+    // Fetch team data first so we can send the email notification
+    const { data: teamRow, error: fetchError } = await client
+      .from("teams")
+      .select("leader_email, team_name, game, leader")
+      .eq("id", teamId)
+      .eq("status", "payment_review")
+      .maybeSingle();
+
+    if (fetchError) throw new Error(mapDatabaseError(fetchError, "Could not fetch team for review."));
+
     const { error } = await client
       .from("teams")
       .update({ status: nextStatus, updated_at: new Date().toISOString() })
@@ -735,7 +743,88 @@ export const mockApi = {
       .eq("status", "payment_review"); // Guard: only targets payment_review rows
 
     if (error) throw new Error(mapDatabaseError(error, "Could not update payment status."));
+
+    // Send email notification to team leader (fire-and-forget — does not block status update)
+    if (teamRow) {
+      const leaderName = (teamRow.leader as TeamMember | null)?.roll_no ?? "";
+      mockApi.sendPaymentStatusEmail(
+        teamRow.leader_email,
+        teamRow.team_name,
+        teamRow.game,
+        decision,
+        leaderName,
+      ).catch((err: unknown) => {
+        console.warn("Email notification failed (non-critical):", err);
+      });
+    }
+
     return { id: teamId, status: nextStatus };
+  },
+
+  // Send approval / rejection email to team leader via EmailJS (if configured)
+  sendPaymentStatusEmail: async (
+    leaderEmail: string,
+    teamName: string,
+    game: string,
+    decision: PaymentReviewDecision,
+    leaderRollNo?: string,
+  ): Promise<void> => {
+    const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
+    const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
+    const templateId =
+      decision === "approve"
+        ? import.meta.env.VITE_EMAILJS_TEMPLATE_APPROVAL_ID
+        : import.meta.env.VITE_EMAILJS_TEMPLATE_REJECTION_ID;
+
+    if (!serviceId || !publicKey || !templateId) {
+      // EmailJS not configured — skip silently
+      return;
+    }
+
+    const { send } = await import("@emailjs/browser");
+
+    const gameLabel = game.toUpperCase();
+    const greeting = leaderRollNo ? `Hi ${leaderRollNo}` : "Hi Team Leader";
+
+    const templateParams =
+      decision === "approve"
+        ? {
+            to_email: leaderEmail,
+            team_name: teamName,
+            game: gameLabel,
+            subject: `🎮 Congratulations! Your Spot is Confirmed — GCB Esports ${gameLabel} 2026`,
+            message:
+              `${greeting},\n\n` +
+              `🎉 Great news! Your payment for team "${teamName}" (${gameLabel}) has been APPROVED and your registration is now CONFIRMED for the GCB Esports Tournament 2026.\n\n` +
+              `✅ What's next?\n` +
+              `• Log in to your dashboard at ${DASHBOARD_URL}\n` +
+              `• Download your QR Tickets from the "QR Tickets" tab\n` +
+              `• Each team member has their own unique QR code — keep them ready for event day check-in\n` +
+              `• Stay tuned on Discord for lobby details, match schedules, and final instructions\n\n` +
+              `See you on the battlefield! 🏆\n\n` +
+              `— GCB Esports Team`,
+          }
+        : {
+            to_email: leaderEmail,
+            team_name: teamName,
+            game: gameLabel,
+            subject: `❌ Payment Not Verified — GCB Esports ${gameLabel} 2026`,
+            message:
+              `${greeting},\n\n` +
+              `We regret to inform you that your payment submission for team "${teamName}" (${gameLabel}) could NOT be verified and has been rejected.\n\n` +
+              `❗ Common reasons for rejection:\n` +
+              `• UTR number was incorrect or already used\n` +
+              `• Payment screenshot was unclear or invalid\n` +
+              `• Amount paid did not match the registration fee\n\n` +
+              `🔄 What to do next:\n` +
+              `• Log in to your dashboard at ${DASHBOARD_URL}\n` +
+              `• Re-submit your payment with a clear screenshot and correct UTR number\n` +
+              `• If you believe this is an error, contact the organizers on Discord or WhatsApp\n\n` +
+              `We hope to see you participate!\n\n` +
+              `— GCB Esports Team`,
+          };
+
+    await send(serviceId, templateId, templateParams, { publicKey });
   },
 
   submitPaymentProof: async (teamId: string, utrNumber: string, screenshotUrl: string | null) => {
@@ -808,5 +897,98 @@ export const mockApi = {
       .getPublicUrl(filePath);
 
     return publicUrl;
+  },
+
+  // Attendance: look up a team member by their 8-char QR token and return info
+  // The token is a deterministic hash of (teamId:role:rollNo); we scan all
+  // confirmed teams to find the matching member.
+  scanQrAttendance: async (qrToken: string): Promise<{
+    teamId: string;
+    teamName: string;
+    game: string;
+    memberRollNo: string;
+    memberUid: string;
+    memberRole: "leader" | "player" | "substitute";
+    alreadyAttended: boolean;
+  }> => {
+    const client = ensureClient();
+
+    const token = qrToken.trim().toUpperCase();
+
+    // Basic format validation: 8 uppercase alphanumeric chars
+    if (!/^[A-Z0-9]{8}$/.test(token)) {
+      throw new Error("Invalid QR code. Must be an 8-character alphanumeric token.");
+    }
+
+    // Fetch all confirmed teams
+    const { data: teams, error } = await client
+      .from("teams")
+      .select("id, team_name, game, leader, players, substitute, checked_in_members, status")
+      .eq("status", "confirmed");
+
+    if (error) throw new Error(mapDatabaseError(error, "Could not look up teams."));
+    if (!teams || teams.length === 0) throw new Error("No confirmed teams found.");
+
+    // Scan every member of every team to find whose token matches
+    for (const team of teams as Array<TeamRow & { checked_in_members: string[] | null }>) {
+      const roles: Array<{ role: "leader" | "player" | "substitute"; uid: string; rollNo: string }> = [];
+
+      if (team.leader?.roll_no) {
+        roles.push({ role: "leader", uid: team.leader.uid, rollNo: team.leader.roll_no });
+      }
+      for (const p of safePlayers(team.players)) {
+        roles.push({ role: "player", uid: p.uid, rollNo: p.roll_no });
+      }
+      if (team.substitute?.roll_no) {
+        roles.push({ role: "substitute", uid: team.substitute.uid, rollNo: team.substitute.roll_no });
+      }
+
+      for (const member of roles) {
+        if (buildQrToken(team.id, member.role, member.rollNo) === token) {
+          const attendanceKey = `${team.id}:${member.role}:${member.rollNo}`;
+          const checkedIn: string[] = team.checked_in_members || [];
+          return {
+            teamId: team.id,
+            teamName: team.team_name,
+            game: team.game,
+            memberRollNo: member.rollNo,
+            memberUid: member.uid,
+            memberRole: member.role,
+            alreadyAttended: checkedIn.includes(attendanceKey),
+          };
+        }
+      }
+    }
+
+    throw new Error("QR code is not linked to any registered member.");
+  },
+
+  markAttendance: async (teamId: string, role: "leader" | "player" | "substitute", rollNo: string): Promise<void> => {
+    const client = ensureClient();
+
+    const attendanceKey = `${teamId}:${role}:${rollNo}`;
+
+    // Fetch current checked_in_members
+    const { data, error: fetchError } = await client
+      .from("teams")
+      .select("checked_in_members")
+      .eq("id", teamId)
+      .maybeSingle();
+
+    if (fetchError) throw new Error(mapDatabaseError(fetchError, "Could not fetch attendance data."));
+    if (!data) throw new Error("Team not found.");
+
+    const current: string[] = (data as { checked_in_members: string[] | null }).checked_in_members || [];
+
+    if (current.includes(attendanceKey)) return; // already marked, idempotent
+
+    const updated = [...current, attendanceKey];
+
+    const { error: updateError } = await client
+      .from("teams")
+      .update({ checked_in_members: updated, updated_at: new Date().toISOString() })
+      .eq("id", teamId);
+
+    if (updateError) throw new Error(mapDatabaseError(updateError, "Could not save attendance."));
   },
 };

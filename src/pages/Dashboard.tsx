@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { LogOut, Trophy, Crown, Shield, Users, ArrowRight, Gamepad2, AlertCircle, Plus, Check, Edit2, AlertTriangle, X, Upload, Image as ImageIcon, Trash2, Copy, Link2, MessageCircle, ExternalLink } from "lucide-react";
+import { LogOut, Trophy, Crown, Shield, Users, ArrowRight, Gamepad2, AlertCircle, Plus, Check, Edit2, AlertTriangle, X, Upload, Image as ImageIcon, Trash2, Copy, Link2, MessageCircle, ExternalLink, Download } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,22 @@ import { mockApi } from "@/lib/mockApi";
 import { motion, AnimatePresence } from "framer-motion";
 import { QRCodeSVG } from 'qrcode.react';
 import mockUpiReceipt from "@/assets/mock_upi_payment.png";
+
+// Build a deterministic 8-char QR token for a team member
+import { buildQrToken } from '@/lib/qrToken';
+
+// Download a single ticket card as PDF
+const downloadTicketPdf = async (elementId: string, filename: string) => {
+  const el = document.getElementById(elementId);
+  if (!el) return;
+  const { default: html2canvas } = await import("html2canvas");
+  const { jsPDF } = await import("jspdf");
+  const canvas = await html2canvas(el, { backgroundColor: "#0a0a0a", scale: 2 });
+  const imgData = canvas.toDataURL("image/png");
+  const pdf = new jsPDF({ orientation: "portrait", unit: "px", format: [canvas.width / 2, canvas.height / 2] });
+  pdf.addImage(imgData, "PNG", 0, 0, canvas.width / 2, canvas.height / 2);
+  pdf.save(filename);
+};
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -858,7 +874,7 @@ export default function Dashboard() {
                 <TabsContent value="tickets">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {/* Leader Ticket */}
-                    <div className="glass rounded-xl p-6 border-2 border-primary/30 relative overflow-hidden flex flex-col items-center ticket-bg">
+                    <div id={`ticket-leader-${teamData.id}`} className="glass rounded-xl p-6 border-2 border-primary/30 relative overflow-hidden flex flex-col items-center ticket-bg">
                         <div className="absolute top-0 right-0 bg-primary text-void-black text-xs font-bold px-3 py-1 rounded-bl-lg">LEADER</div>
                         <div className="w-12 h-12 rounded-lg bg-primary/10 border border-primary/30 flex items-center justify-center mb-2 overflow-hidden">
                            {teamData.logo ? (
@@ -867,38 +883,71 @@ export default function Dashboard() {
                              <Shield className="h-6 w-6 text-primary" />
                            )}
                         </div>
-                        <h4 className="font-bold text-lg">{teamData.leader.name}</h4>
-                        <p className="text-xs text-muted-foreground mb-4">UID: {teamData.leader.uid}</p>
-                        <div className="p-2 bg-white rounded-lg mb-4">
-                            <QRCodeSVG value={`HYPER-${teamData.leader.uid}-L`} size={150} />
+                        <h4 className="font-bold text-lg">{teamData.teamName}</h4>
+                        <p className="text-xs text-muted-foreground">Roll No: {teamData.leader.roll_no}</p>
+                        <p className="text-xs text-muted-foreground mb-3">UID: {teamData.leader.uid}</p>
+                        <div className="p-2 bg-white rounded-lg mb-2">
+                            <QRCodeSVG value={buildQrToken(teamData.id, "leader", teamData.leader.roll_no)} size={150} />
                         </div>
-                        <p className="text-xs font-bold tracking-widest text-primary">{teamData.game} SQUAD</p>
+                        <div className="w-full mb-3 text-center px-1">
+                          <p className="text-[9px] text-muted-foreground uppercase tracking-widest mb-0.5">QR Token</p>
+                          <p className="text-[9px] font-mono text-foreground/50 break-all select-all leading-relaxed">
+                            {buildQrToken(teamData.id, "leader", teamData.leader.roll_no)}
+                          </p>
+                        </div>
+                        <p className="text-xs font-bold tracking-widest text-primary mb-3">{teamData.game} SQUAD</p>
+                        <Button size="sm" variant="outline" className="text-xs gap-1 border-primary/40 text-primary hover:bg-primary/10"
+                          onClick={() => downloadTicketPdf(`ticket-leader-${teamData.id}`, `ticket-${teamData.teamName}-leader.pdf`)}>
+                          <Download className="h-3 w-3" /> Download PDF
+                        </Button>
                     </div>
 
                     {/* Member Tickets */}
                     {teamData.players.map((p: any, idx: number) => (
-                        <div key={idx} className="glass rounded-xl p-6 border border-cyber-purple/30 relative flex flex-col items-center">
+                        <div key={idx} id={`ticket-player-${teamData.id}-${idx}`} className="glass rounded-xl p-6 border border-cyber-purple/30 relative flex flex-col items-center">
                             <Users className="h-8 w-8 text-cyber-purple mb-2" />
-                            <h4 className="font-bold text-lg">Player {idx + 2}</h4>
-                            <p className="text-xs text-muted-foreground mb-4">UID: {p.uid}</p>
-                            <div className="p-2 bg-white rounded-lg mb-4">
-                                <QRCodeSVG value={`HYPER-${p.uid}-P${idx}`} size={150} />
+                            <h4 className="font-bold text-lg">{teamData.teamName}</h4>
+                            <p className="text-xs text-muted-foreground">Roll No: {p.roll_no}</p>
+                            <p className="text-xs text-muted-foreground mb-3">UID: {p.uid}</p>
+                            <div className="p-2 bg-white rounded-lg mb-2">
+                                <QRCodeSVG value={buildQrToken(teamData.id, "player", p.roll_no)} size={150} />
                             </div>
-                            <p className="text-xs font-bold tracking-widest text-cyber-purple">{teamData.game} SQUAD</p>
+                            <div className="w-full mb-3 text-center px-1">
+                              <p className="text-[9px] text-muted-foreground uppercase tracking-widest mb-0.5">QR Token</p>
+                              <p className="text-[9px] font-mono text-foreground/50 break-all select-all leading-relaxed">
+                                {buildQrToken(teamData.id, "player", p.roll_no)}
+                              </p>
+                            </div>
+                            <p className="text-xs font-bold tracking-widest text-cyber-purple mb-3">{teamData.game} SQUAD — Player {idx + 2}</p>
+                            <Button size="sm" variant="outline" className="text-xs gap-1 border-cyber-purple/40 text-cyber-purple hover:bg-cyber-purple/10"
+                              onClick={() => downloadTicketPdf(`ticket-player-${teamData.id}-${idx}`, `ticket-${teamData.teamName}-player${idx + 2}.pdf`)}>
+                              <Download className="h-3 w-3" /> Download PDF
+                            </Button>
                         </div>
                     ))}
 
                     {/* Sub Ticket */}
                     {teamData.substitute && (
-                        <div className="glass rounded-xl p-6 border border-neon-red/30 relative flex flex-col items-center">
+                        <div id={`ticket-sub-${teamData.id}`} className="glass rounded-xl p-6 border border-neon-red/30 relative flex flex-col items-center">
                             <div className="absolute top-0 right-0 bg-neon-red/20 text-neon-red text-xs font-bold px-3 py-1 rounded-bl-lg">SUB</div>
                             <Shield className="h-8 w-8 text-neon-red mb-2" />
-                            <h4 className="font-bold text-lg">Substitute</h4>
-                            <p className="text-xs text-muted-foreground mb-4">UID: {teamData.substitute.uid}</p>
-                            <div className="p-2 bg-white rounded-lg mb-4">
-                                <QRCodeSVG value={`HYPER-${teamData.substitute.uid}-S`} size={150} />
+                            <h4 className="font-bold text-lg">{teamData.teamName}</h4>
+                            <p className="text-xs text-muted-foreground">Roll No: {teamData.substitute.roll_no}</p>
+                            <p className="text-xs text-muted-foreground mb-3">UID: {teamData.substitute.uid}</p>
+                            <div className="p-2 bg-white rounded-lg mb-2">
+                                <QRCodeSVG value={buildQrToken(teamData.id, "substitute", teamData.substitute.roll_no)} size={150} />
                             </div>
-                            <p className="text-xs font-bold tracking-widest text-neon-red">{teamData.game} SQUAD</p>
+                            <div className="w-full mb-3 text-center px-1">
+                              <p className="text-[9px] text-muted-foreground uppercase tracking-widest mb-0.5">QR Token</p>
+                              <p className="text-[9px] font-mono text-foreground/50 break-all select-all leading-relaxed">
+                                {buildQrToken(teamData.id, "substitute", teamData.substitute.roll_no)}
+                              </p>
+                            </div>
+                            <p className="text-xs font-bold tracking-widest text-neon-red mb-3">{teamData.game} SQUAD — Substitute</p>
+                            <Button size="sm" variant="outline" className="text-xs gap-1 border-neon-red/40 text-neon-red hover:bg-neon-red/10"
+                              onClick={() => downloadTicketPdf(`ticket-sub-${teamData.id}`, `ticket-${teamData.teamName}-substitute.pdf`)}>
+                              <Download className="h-3 w-3" /> Download PDF
+                            </Button>
                         </div>
                     )}
                 </div>
