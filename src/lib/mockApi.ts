@@ -1,5 +1,6 @@
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { supabase } from "./supabase";
+import { buildQrToken } from "./qrToken";
 
 type DatabaseError = {
   code?: string;
@@ -898,8 +899,9 @@ export const mockApi = {
     return publicUrl;
   },
 
-  // Attendance: look up a team member by QR token and mark them as attended
-  // Returns team info + whether this is the first scan (not yet attended)
+  // Attendance: look up a team member by their 8-char QR token and return info
+  // The token is a deterministic hash of (teamId:role:rollNo); we scan all
+  // confirmed teams to find the matching member.
   scanQrAttendance: async (qrToken: string): Promise<{
     teamId: string;
     teamName: string;
@@ -911,64 +913,54 @@ export const mockApi = {
   }> => {
     const client = ensureClient();
 
-    // QR token format: HYPER-ARENA-{teamId}-{role}-{rollNo}
-    // e.g. HYPER-ARENA-abc123-leader-2101234
-    const parts = qrToken.split("-");
-    if (parts.length < 5 || parts[0] !== "HYPER" || parts[1] !== "ARENA") {
-      throw new Error("Invalid QR code. Not a GCB Esports ticket.");
+    const token = qrToken.trim().toUpperCase();
+
+    // Basic format validation: 8 uppercase alphanumeric chars
+    if (!/^[A-Z0-9]{8}$/.test(token)) {
+      throw new Error("Invalid QR code. Must be an 8-character alphanumeric token.");
     }
 
-    // teamId may contain hyphens so we reconstruct carefully
-    // Format: HYPER-ARENA-{teamId}-{role}-{rollNo}
-    // role is second-to-last, rollNo is last
-    const rollNo = parts[parts.length - 1];
-    const role = parts[parts.length - 2] as "leader" | "player" | "substitute";
-    const teamId = parts.slice(2, parts.length - 2).join("-");
-
-    const { data, error } = await client
+    // Fetch all confirmed teams
+    const { data: teams, error } = await client
       .from("teams")
       .select("id, team_name, game, leader, players, substitute, checked_in_members, status")
-      .eq("id", teamId)
-      .maybeSingle();
+      .eq("status", "confirmed");
 
-    if (error) throw new Error(mapDatabaseError(error, "Could not look up team."));
-    if (!data) throw new Error("QR code is not linked to any registered team.");
+    if (error) throw new Error(mapDatabaseError(error, "Could not look up teams."));
+    if (!teams || teams.length === 0) throw new Error("No confirmed teams found.");
 
-    const team = data as TeamRow & { checked_in_members: string[] | null };
+    // Scan every member of every team to find whose token matches
+    for (const team of teams as Array<TeamRow & { checked_in_members: string[] | null }>) {
+      const roles: Array<{ role: "leader" | "player" | "substitute"; uid: string; rollNo: string }> = [];
 
-    if (team.status !== "confirmed") {
-      throw new Error("This team's registration is not confirmed yet.");
+      if (team.leader?.roll_no) {
+        roles.push({ role: "leader", uid: team.leader.uid, rollNo: team.leader.roll_no });
+      }
+      for (const p of safePlayers(team.players)) {
+        roles.push({ role: "player", uid: p.uid, rollNo: p.roll_no });
+      }
+      if (team.substitute?.roll_no) {
+        roles.push({ role: "substitute", uid: team.substitute.uid, rollNo: team.substitute.roll_no });
+      }
+
+      for (const member of roles) {
+        if (buildQrToken(team.id, member.role, member.rollNo) === token) {
+          const attendanceKey = `${team.id}:${member.role}:${member.rollNo}`;
+          const checkedIn: string[] = team.checked_in_members || [];
+          return {
+            teamId: team.id,
+            teamName: team.team_name,
+            game: team.game,
+            memberRollNo: member.rollNo,
+            memberUid: member.uid,
+            memberRole: member.role,
+            alreadyAttended: checkedIn.includes(attendanceKey),
+          };
+        }
+      }
     }
 
-    // Find member by roll_no and role
-    let memberUid = "";
-    if (role === "leader" && team.leader?.roll_no === rollNo) {
-      memberUid = team.leader.uid;
-    } else if (role === "player") {
-      const found = safePlayers(team.players).find((p) => p.roll_no === rollNo);
-      if (found) memberUid = found.uid;
-    } else if (role === "substitute" && team.substitute?.roll_no === rollNo) {
-      memberUid = team.substitute.uid;
-    }
-
-    if (!memberUid) {
-      throw new Error("Member not found for this QR code. Possible tampering.");
-    }
-
-    // Unique attendance key per member
-    const attendanceKey = `${teamId}:${role}:${rollNo}`;
-    const checkedIn: string[] = team.checked_in_members || [];
-    const alreadyAttended = checkedIn.includes(attendanceKey);
-
-    return {
-      teamId: team.id,
-      teamName: team.team_name,
-      game: team.game,
-      memberRollNo: rollNo,
-      memberUid,
-      memberRole: role,
-      alreadyAttended,
-    };
+    throw new Error("QR code is not linked to any registered member.");
   },
 
   markAttendance: async (teamId: string, role: "leader" | "player" | "substitute", rollNo: string): Promise<void> => {
