@@ -566,7 +566,7 @@ const AttendanceScanner = () => {
       <div className="flex items-center gap-2 mb-4">
         <QrCode className="w-4 h-4 text-yellow-400 shrink-0" />
         <h2 className="font-orbitron font-bold text-xs tracking-widest text-yellow-400 uppercase">QR Attendance Scanner</h2>
-        <span className="ml-auto text-[9px] uppercase tracking-widest text-muted-foreground">Scan or paste QR token</span>
+        <span className="ml-auto text-[9px] uppercase tracking-widest text-muted-foreground">Scan or type 8-char token</span>
       </div>
 
       {/* Camera scanner container — always in DOM, height-animated to avoid display:none flicker */}
@@ -590,8 +590,9 @@ const AttendanceScanner = () => {
             <input
               type="text"
               value={manualToken}
-              onChange={(e) => setManualToken(e.target.value)}
-              placeholder="Paste QR token here…"
+              onChange={(e) => setManualToken(e.target.value.toUpperCase())}
+              placeholder="Enter 8-char token (e.g. A3BZ7K9X)…"
+              maxLength={8}
               className="flex-1 bg-background/60 border border-white/10 px-3 py-2 text-xs font-mono text-foreground placeholder:text-muted-foreground focus:border-yellow-400/50 focus:outline-none rounded"
               onKeyDown={(e) => e.key === 'Enter' && void processToken(manualToken)}
             />

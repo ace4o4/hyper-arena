@@ -15,9 +15,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { QRCodeSVG } from 'qrcode.react';
 import mockUpiReceipt from "@/assets/mock_upi_payment.png";
 
-// Build a deterministic QR token for a team member
-const buildQrToken = (teamId: string, role: "leader" | "player" | "substitute", rollNo: string) =>
-  `HYPER-ARENA-${teamId}-${role}-${rollNo}`;
+// Build a deterministic 8-char QR token for a team member
+import { buildQrToken } from '@/lib/qrToken';
 
 // Download a single ticket card as PDF
 const downloadTicketPdf = async (elementId: string, filename: string) => {
