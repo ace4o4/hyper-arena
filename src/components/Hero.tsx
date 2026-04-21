@@ -195,14 +195,18 @@ export const Hero = () => {
               { icon: "🟢", label: "Registration Open" },
               { icon: "🎮", label: "Squad Format" },
               { icon: "🏆", label: "GCB Esports Tournament" },
+              { icon: "💬", label: "WhatsApp Community" },
             ].map((badge, idx) => (
-              <div
+              <a
                 key={idx}
-                className="flex items-center gap-2 px-4 py-2 glass border border-primary/20 clip-diagonal"
+                href={badge.label === "WhatsApp Community" ? "https://chat.whatsapp.com/J8Pav0GLEXs3gYKeMrcRR4" : undefined}
+                target={badge.label === "WhatsApp Community" ? "_blank" : undefined}
+                rel={badge.label === "WhatsApp Community" ? "noopener noreferrer" : undefined}
+                className={`flex items-center gap-2 px-4 py-2 glass border border-primary/20 clip-diagonal hover:border-primary/50 transition-all ${badge.label === "WhatsApp Community" ? "cursor-pointer" : ""}`}
               >
                 <span className="text-sm">{badge.icon}</span>
                 <span className="text-xs font-bold uppercase tracking-widest text-primary">{badge.label}</span>
-              </div>
+              </a>
             ))}
           </motion.div>
         </motion.div>

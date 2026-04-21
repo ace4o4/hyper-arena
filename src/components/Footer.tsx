@@ -12,7 +12,9 @@ import {
   Users,
   Shield,
   ExternalLink,
-  Send
+  Send,
+  MessageSquare,
+  MessageCircle
 } from "lucide-react";
 import { useRef, useState } from "react";
 
@@ -44,6 +46,7 @@ const footerLinks = {
 };
 
 const socialLinks = [
+  { icon: MessageCircle, href: "https://chat.whatsapp.com/J8Pav0GLEXs3gYKeMrcRR4", label: "WhatsApp", color: "hover:text-green-500 hover:shadow-[0_0_20px_rgba(34,197,94,0.5)]" },
   { icon: Twitter, href: "#twitter", label: "Twitter", color: "hover:text-accent hover:shadow-[0_0_20px_hsl(var(--accent)/0.5)]" },
   { icon: Instagram, href: "#instagram", label: "Instagram", color: "hover:text-destructive hover:shadow-[0_0_20px_hsl(var(--destructive)/0.5)]" },
   { icon: Youtube, href: "#youtube", label: "YouTube", color: "hover:text-destructive hover:shadow-[0_0_20px_hsl(var(--destructive)/0.5)]" },
@@ -127,6 +130,25 @@ export const Footer = () => {
               </motion.div>
             ))}
           </div>
+          <motion.div className="flex flex-wrap justify-center gap-4 mt-8">
+            {[
+              { icon: "🟢", label: "Registration Open" },
+              { icon: "🎮", label: "Squad Format" },
+              { icon: "🏆", label: "GCB Esports Tournament" },
+              { icon: "💬", label: "WhatsApp Community" },
+            ].map((badge, idx) => (
+              <a
+                key={idx}
+                href={badge.label === "WhatsApp Community" ? "https://chat.whatsapp.com/J8Pav0GLEXs3gYKeMrcRR4" : undefined}
+                target={badge.label === "WhatsApp Community" ? "_blank" : undefined}
+                rel={badge.label === "WhatsApp Community" ? "noopener noreferrer" : undefined}
+                className={`flex items-center gap-2 px-4 py-2 glass border border-primary/20 clip-diagonal hover:border-primary/50 transition-all ${badge.label === "WhatsApp Community" ? "cursor-pointer" : ""}`}
+              >
+                <span className="text-sm">{badge.icon}</span>
+                <span className="text-xs font-bold uppercase tracking-widest text-primary">{badge.label}</span>
+              </a>
+            ))}
+          </motion.div>
         </div>
       </motion.div>
 

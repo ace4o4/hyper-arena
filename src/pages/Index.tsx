@@ -1,5 +1,7 @@
 import { lazy, Suspense } from "react";
 import { Hero } from "@/components/Hero";
+import { CommunityBanner } from "@/components/CommunityBanner";
+
 
 import { Footer } from "@/components/Footer";
 import { Navbar } from "@/components/Navbar";
@@ -40,6 +42,7 @@ const Index = () => {
       <Navbar />
       <Hero />
 
+      <CommunityBanner />
 
       <Suspense fallback={<TournamentGridSkeleton />}>
         <TournamentGrid />

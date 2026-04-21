@@ -16,6 +16,7 @@ const AdminPanel = lazy(() => import("./pages/AdminPanel"));
 const Leaderboard = lazy(() => import("./pages/Leaderboard"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const BroadcastOverlay = lazy(() => import("./pages/BroadcastOverlay"));
+import { FloatingWhatsApp } from "./components/FloatingWhatsApp";
 
 // Sci-fi Gaming Loader
 const PageLoader = () => (
@@ -128,6 +129,7 @@ const App = () => (
     <Suspense fallback={null}>
       <SmoothScroll />
     </Suspense>
+    <FloatingWhatsApp />
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Suspense fallback={<PageLoader />}>
         <Routes>

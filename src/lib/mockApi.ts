@@ -756,19 +756,23 @@ export const mockApi = {
 
     const fileExt = file.name.split('.').pop();
     const fileName = `${teamId}-${Date.now()}.${fileExt}`;
+    const bucketName = 'payment-screenshots';
+
+    console.log(`Uploading payment screenshot to ${bucketName}:`, fileName);
 
     const { error: uploadError } = await client
       .storage
-      .from('payment-screenshots')
+      .from(bucketName)
       .upload(fileName, file, { upsert: true });
 
     if (uploadError) {
+      console.error("Upload error details:", uploadError);
       throw new Error(`Failed to upload screenshot: ${uploadError.message}`);
     }
 
     const { data: { publicUrl } } = client
       .storage
-      .from('payment-screenshots')
+      .from(bucketName)
       .getPublicUrl(fileName);
 
     return publicUrl;

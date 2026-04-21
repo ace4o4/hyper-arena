@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { LogOut, Trophy, Crown, Shield, Users, ArrowRight, Gamepad2, AlertCircle, Plus, Check, Edit2, AlertTriangle, X, Upload, Image as ImageIcon, Trash2, Copy, Link2 } from "lucide-react";
+import { LogOut, Trophy, Crown, Shield, Users, ArrowRight, Gamepad2, AlertCircle, Plus, Check, Edit2, AlertTriangle, X, Upload, Image as ImageIcon, Trash2, Copy, Link2, MessageCircle, ExternalLink } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { mockApi } from "@/lib/mockApi";
 import { motion, AnimatePresence } from "framer-motion";
 import { QRCodeSVG } from 'qrcode.react';
+import mockUpiReceipt from "@/assets/mock_upi_payment.png";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -497,6 +498,23 @@ export default function Dashboard() {
                   <h3 className="text-xl font-black text-neon-cyan mb-1">Invite Teammates</h3>
                   <p className="text-sm text-muted-foreground">Share invite code/link so teammates can fill their own details and join your roster.</p>
                 </div>
+                <div className="glass p-4 rounded-xl border border-green-500/30 bg-green-500/5 hover:border-green-500/50 transition-all group">
+                   <div className="flex items-center gap-3 mb-2">
+                       <div className="p-2 bg-green-500/10 rounded-lg group-hover:scale-110 transition-transform">
+                          <MessageCircle className="h-5 w-5 text-green-500" />
+                       </div>
+                       <div className="text-xs uppercase tracking-widest text-green-500 font-bold">Community Hub</div>
+                   </div>
+                   <div className="text-sm font-medium mb-3">Join our WhatsApp Community for matches & updates.</div>
+                   <a 
+                     href="https://chat.whatsapp.com/J8Pav0GLEXs3gYKeMrcRR4" 
+                     target="_blank" 
+                     rel="noopener noreferrer"
+                     className="inline-flex items-center gap-2 text-xs text-white bg-green-500/20 hover:bg-green-500/30 px-3 py-1.5 rounded transition-colors border border-green-500/20"
+                   >
+                     Join Now <ExternalLink className="h-3 w-3" />
+                   </a>
+                </div>
                 <div className="text-xs uppercase tracking-widest text-primary">Step 1: Build Roster</div>
               </div>
 
@@ -692,7 +710,7 @@ export default function Dashboard() {
                         {/* Mock UPI Image for reference */}
                         <div className="mt-4 mb-6 border border-white/10 rounded-lg overflow-hidden bg-black/50 p-2">
                            <p className="text-xs text-muted-foreground mb-2">Example Screenshot</p>
-                           <img src="/src/assets/mock_upi_payment.png" alt="Mock UPI Reference" className="w-full h-auto rounded border border-white/5 mix-blend-screen max-h-[300px] object-contain" />
+                           <img src={mockUpiReceipt} alt="Mock UPI Reference" className="w-full h-auto rounded border border-white/5 mix-blend-screen max-h-[300px] object-contain" />
                         </div>
 
                         <div className="space-y-4 mb-6 text-left">

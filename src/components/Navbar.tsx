@@ -17,6 +17,7 @@ const navLinks = [
   { name: "Home", href: "/", icon: Zap },
   { name: "Tournaments", href: "/#tournaments", icon: Trophy },
   { name: "Leaderboard", href: "/#leaderboard", icon: Users },
+  { name: "Community", href: "https://chat.whatsapp.com/J8Pav0GLEXs3gYKeMrcRR4", icon: Users, external: true },
   { name: "Games", href: "/#games", icon: Gamepad2 },
   { name: "Dashboard", href: "/dashboard", icon: User },
 ];
@@ -110,33 +111,45 @@ export const Navbar = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1 }}
                 >
-                  <Link
-                    to={link.href}
-                    className={`relative px-4 py-2 rounded-lg font-rajdhani font-medium transition-all duration-300 flex items-center gap-2 group ${isActive(link.href)
-                      ? "text-primary"
-                      : "text-muted-foreground hover:text-foreground"
-                      }`}
-                  >
-                    {isActive(link.href) && (
-                      <motion.div
-                        layoutId="activeNav"
-                        className="absolute inset-0 bg-primary/20 rounded-lg border border-primary/50 shadow-[0_0_15px_rgba(0,255,157,0.3)]"
-                        transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                      />
-                    )}
-
-                    <span className="relative z-10 flex items-center gap-2">
+                  {link.external ? (
+                    <a
+                      href={link.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-4 py-2 rounded-lg font-rajdhani font-medium text-muted-foreground hover:text-foreground transition-all duration-300 flex items-center gap-2 group"
+                    >
                       <link.icon className="w-4 h-4" />
                       <span>{link.name}</span>
-                    </span>
+                    </a>
+                  ) : (
+                    <Link
+                      to={link.href}
+                      className={`relative px-4 py-2 rounded-lg font-rajdhani font-medium transition-all duration-300 flex items-center gap-2 group ${isActive(link.href)
+                        ? "text-primary"
+                        : "text-muted-foreground hover:text-foreground"
+                        }`}
+                    >
+                      {isActive(link.href) && (
+                        <motion.div
+                          layoutId="activeNav"
+                          className="absolute inset-0 bg-primary/20 rounded-lg border border-primary/50 shadow-[0_0_15px_rgba(0,255,157,0.3)]"
+                          transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                        />
+                      )}
 
-                    <motion.div
-                      className="absolute bottom-0 left-1/2 h-0.5 bg-primary rounded-full z-10"
-                      initial={{ width: 0, x: "-50%" }}
-                      whileHover={{ width: "80%", x: "-50%" }}
-                      transition={{ duration: 0.2 }}
-                    />
-                  </Link>
+                      <span className="relative z-10 flex items-center gap-2">
+                        <link.icon className="w-4 h-4" />
+                        <span>{link.name}</span>
+                      </span>
+
+                      <motion.div
+                        className="absolute bottom-0 left-1/2 h-0.5 bg-primary rounded-full z-10"
+                        initial={{ width: 0, x: "-50%" }}
+                        whileHover={{ width: "80%", x: "-50%" }}
+                        transition={{ duration: 0.2 }}
+                      />
+                    </Link>
+                  )}
                 </motion.div>
               ))}
             </div>
@@ -226,14 +239,27 @@ export const Navbar = () => {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.1 }}
                   >
-                    <Link
-                      to={link.href}
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className="flex items-center gap-4 p-4 glass rounded-lg text-foreground font-rajdhani text-lg"
-                    >
-                      <link.icon className="w-5 h-5 text-primary" />
-                      {link.name}
-                    </Link>
+                    {link.external ? (
+                      <a
+                        href={link.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="flex items-center gap-4 p-4 glass rounded-lg text-foreground font-rajdhani text-lg"
+                      >
+                        <link.icon className="w-5 h-5 text-primary" />
+                        {link.name}
+                      </a>
+                    ) : (
+                      <Link
+                        to={link.href}
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="flex items-center gap-4 p-4 glass rounded-lg text-foreground font-rajdhani text-lg"
+                      >
+                        <link.icon className="w-5 h-5 text-primary" />
+                        {link.name}
+                      </Link>
+                    )}
                   </motion.div>
                 ))}
 
