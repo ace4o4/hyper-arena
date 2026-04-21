@@ -1,5 +1,7 @@
 -- Add attendance tracking to teams table
--- checked_in_members: array of member identifiers (roll_no) who have checked in
+-- checked_in_members: array of composite attendance keys in the format
+--   '{teamId}:{role}:{rollNo}'  (e.g. 'abc123:leader:2101234')
+-- Each entry represents one member who has checked in and may only enter once.
 ALTER TABLE teams
   ADD COLUMN IF NOT EXISTS checked_in_members TEXT[] DEFAULT '{}';
 
