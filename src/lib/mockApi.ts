@@ -201,6 +201,8 @@ const generateUniqueInviteCode = async () => {
   throw new Error("Could not generate a unique invite code. Please retry.");
 };
 
+const DASHBOARD_URL = "https://cybersoulz.tech/dashboard";
+
 export const mockApi = {
   // Authentication
   login: async (email: string, password?: string) => {
@@ -794,7 +796,7 @@ export const mockApi = {
               `${greeting},\n\n` +
               `🎉 Great news! Your payment for team "${teamName}" (${gameLabel}) has been APPROVED and your registration is now CONFIRMED for the GCB Esports Tournament 2026.\n\n` +
               `✅ What's next?\n` +
-              `• Log in to your dashboard at https://cybersoulz.tech/dashboard\n` +
+              `• Log in to your dashboard at ${DASHBOARD_URL}\n` +
               `• Download your QR Tickets from the "QR Tickets" tab\n` +
               `• Each team member has their own unique QR code — keep them ready for event day check-in\n` +
               `• Stay tuned on Discord for lobby details, match schedules, and final instructions\n\n` +
@@ -814,7 +816,7 @@ export const mockApi = {
               `• Payment screenshot was unclear or invalid\n` +
               `• Amount paid did not match the registration fee\n\n` +
               `🔄 What to do next:\n` +
-              `• Log in to your dashboard at https://cybersoulz.tech/dashboard\n` +
+              `• Log in to your dashboard at ${DASHBOARD_URL}\n` +
               `• Re-submit your payment with a clear screenshot and correct UTR number\n` +
               `• If you believe this is an error, contact the organizers on Discord or WhatsApp\n\n` +
               `We hope to see you participate!\n\n` +

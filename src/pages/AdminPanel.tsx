@@ -488,19 +488,19 @@ const AttendanceScanner = () => {
   useEffect(() => {
     if (!cameraActive) return;
 
-    let scanner: { stop: () => Promise<void> } | null = null;
+    let scanner: { stop: () => Promise<void>; start: (...args: unknown[]) => Promise<void> } | null = null;
 
     const initScanner = async () => {
       try {
         const { Html5Qrcode } = await import('html5-qrcode');
         if (!mountedRef.current) return;
-        scanner = new Html5Qrcode('qr-scanner-container') as unknown as { stop: () => Promise<void> };
-        scannerRef.current = scanner;
-        await (scanner as any).start(
+        scanner = new Html5Qrcode('qr-scanner-container') as unknown as typeof scanner;
+        scannerRef.current = scanner as { stop: () => Promise<void> };
+        await scanner!.start(
           { facingMode: 'environment' },
           { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1 },
           (decodedText: string) => {
-            void scanner!.stop().catch(() => {});
+            void scanner?.stop().catch(() => {});
             scannerRef.current = null;
             if (mountedRef.current) {
               setCameraActive(false);
