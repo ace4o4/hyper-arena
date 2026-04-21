@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Shield, Lock, Target, Trophy, Zap, Plus, Minus,
   Trash2, RotateCcw, UserPlus, Crosshair, Wifi,
   ChevronRight, Pencil, Check, X, MapPin,
-  Monitor, ExternalLink, Copy, CheckCheck,
+  Monitor, ExternalLink, Copy, CheckCheck, QrCode, Camera, AlertTriangle, Users as UsersIcon,
 } from 'lucide-react';
 import { mockApi, type TeamRecord } from '@/lib/mockApi';
 import { useToast } from '@/hooks/use-toast';
@@ -431,6 +431,207 @@ const BroadcastPanel = () => {
 };
 
 // ─────────────────────────────────────────
+// QR Attendance Scanner Panel
+// ─────────────────────────────────────────
+type ScanResult = {
+  teamName: string;
+  game: string;
+  memberRollNo: string;
+  memberUid: string;
+  memberRole: string;
+  alreadyAttended: boolean;
+  teamId: string;
+};
+
+const AttendanceScanner = () => {
+  const { toast } = useToast();
+  const [manualToken, setManualToken] = useState('');
+  const [scanning, setScanning] = useState(false);
+  const [scanResult, setScanResult] = useState<ScanResult | null>(null);
+  const [scanError, setScanError] = useState('');
+  const [marking, setMarking] = useState(false);
+  const [cameraActive, setCameraActive] = useState(false);
+  const scannerRef = useRef<{ stop: () => Promise<void> } | null>(null);
+
+  const processToken = useCallback(async (token: string) => {
+    const trimmed = token.trim();
+    if (!trimmed) return;
+    setScanning(true);
+    setScanResult(null);
+    setScanError('');
+    try {
+      const result = await mockApi.scanQrAttendance(trimmed);
+      setScanResult(result);
+    } catch (err: unknown) {
+      setScanError((err as Error)?.message || 'Could not read QR code.');
+    } finally {
+      setScanning(false);
+    }
+  }, []);
+
+  const startCamera = useCallback(async () => {
+    try {
+      const { Html5Qrcode } = await import('html5-qrcode');
+      const qrScanner = new Html5Qrcode('qr-scanner-container');
+      scannerRef.current = qrScanner as unknown as { stop: () => Promise<void> };
+      await qrScanner.start(
+        { facingMode: 'environment' },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        (decodedText) => {
+          void qrScanner.stop().catch(() => {});
+          scannerRef.current = null;
+          setCameraActive(false);
+          void processToken(decodedText);
+        },
+        () => { /* ignore non-fatal scan errors */ },
+      );
+      setCameraActive(true);
+    } catch (err: unknown) {
+      toast({ title: 'Camera Error', description: (err as Error)?.message || 'Could not start camera.', variant: 'destructive' });
+    }
+  }, [processToken, toast]);
+
+  const stopCamera = useCallback(() => {
+    if (scannerRef.current) {
+      scannerRef.current.stop().catch(() => {});
+      scannerRef.current = null;
+    }
+    setCameraActive(false);
+  }, []);
+
+  useEffect(() => () => { stopCamera(); }, [stopCamera]);
+
+  const handleMarkAttendance = async () => {
+    if (!scanResult) return;
+    setMarking(true);
+    try {
+      await mockApi.markAttendance(
+        scanResult.teamId,
+        scanResult.memberRole as 'leader' | 'player' | 'substitute',
+        scanResult.memberRollNo,
+      );
+      setScanResult({ ...scanResult, alreadyAttended: true });
+      toast({ title: '✅ Attendance Marked', description: `${scanResult.memberRollNo} — ${scanResult.teamName}` });
+    } catch (err: unknown) {
+      toast({ title: 'Error', description: (err as Error)?.message, variant: 'destructive' });
+    } finally {
+      setMarking(false);
+    }
+  };
+
+  const reset = () => {
+    setScanResult(null);
+    setScanError('');
+    setManualToken('');
+  };
+
+  return (
+    <div className="mb-6 glass border border-yellow-400/30 p-4"
+      style={{ clipPath: 'polygon(0 0,calc(100% - 16px) 0,100% 16px,100% 100%,16px 100%,0 calc(100% - 16px))' }}>
+      <div className="flex items-center gap-2 mb-4">
+        <QrCode className="w-4 h-4 text-yellow-400 shrink-0" />
+        <h2 className="font-orbitron font-bold text-xs tracking-widest text-yellow-400 uppercase">QR Attendance Scanner</h2>
+        <span className="ml-auto text-[9px] uppercase tracking-widest text-muted-foreground">Scan or paste QR token</span>
+      </div>
+
+      {/* Camera scanner container (hidden until active) */}
+      <div id="qr-scanner-container" className={`w-full rounded-lg overflow-hidden mb-3 ${cameraActive ? 'block' : 'hidden'}`} style={{ height: 300 }} />
+
+      {!scanResult && (
+        <>
+          <div className="flex gap-2 mb-3">
+            <input
+              type="text"
+              value={manualToken}
+              onChange={(e) => setManualToken(e.target.value)}
+              placeholder="Paste QR token here…"
+              className="flex-1 bg-background/60 border border-white/10 px-3 py-2 text-xs font-mono text-foreground placeholder:text-muted-foreground focus:border-yellow-400/50 focus:outline-none rounded"
+              onKeyDown={(e) => e.key === 'Enter' && void processToken(manualToken)}
+            />
+            <motion.button whileTap={{ scale: 0.95 }}
+              onClick={() => void processToken(manualToken)}
+              disabled={scanning || !manualToken.trim()}
+              className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest border border-yellow-400/40 text-yellow-400 hover:bg-yellow-400/10 transition-colors disabled:opacity-40">
+              {scanning ? '…' : 'Lookup'}
+            </motion.button>
+          </div>
+          <div className="flex justify-center">
+            <motion.button whileTap={{ scale: 0.95 }}
+              onClick={cameraActive ? stopCamera : startCamera}
+              className={`flex items-center gap-2 px-4 py-2 text-[10px] font-bold uppercase tracking-widest border transition-colors ${
+                cameraActive
+                  ? 'border-destructive/40 text-destructive hover:bg-destructive/10'
+                  : 'border-yellow-400/40 text-yellow-400 hover:bg-yellow-400/10'
+              }`}>
+              <Camera className="w-3 h-3" />
+              {cameraActive ? 'Stop Camera' : 'Open Camera'}
+            </motion.button>
+          </div>
+        </>
+      )}
+
+      {scanError && (
+        <div className="mt-3 p-3 bg-destructive/10 border border-destructive/40 rounded flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 text-destructive shrink-0" />
+          <p className="text-xs text-destructive">{scanError}</p>
+          <motion.button whileTap={{ scale: 0.9 }} onClick={reset} className="ml-auto text-xs text-muted-foreground hover:text-foreground"><X className="w-3 h-3" /></motion.button>
+        </div>
+      )}
+
+      {scanResult && (
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+          className={`mt-3 p-4 rounded border ${scanResult.alreadyAttended ? 'bg-yellow-500/10 border-yellow-500/40' : 'bg-primary/10 border-primary/40'}`}>
+          <div className="flex items-start justify-between gap-2 mb-3">
+            <div>
+              <p className={`font-orbitron font-bold text-sm ${scanResult.alreadyAttended ? 'text-yellow-400' : 'text-primary'}`}>
+                {scanResult.alreadyAttended ? '⚠️ Already Attended' : '✅ Valid Ticket'}
+              </p>
+              <p className="text-[10px] text-muted-foreground mt-0.5 uppercase tracking-widest">
+                {scanResult.alreadyAttended ? 'Entry denied — this QR was already scanned.' : 'First scan — entry allowed.'}
+              </p>
+            </div>
+            <motion.button whileTap={{ scale: 0.9 }} onClick={reset} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></motion.button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 text-xs mb-3">
+            <div className="bg-black/40 p-2 rounded border border-white/5">
+              <p className="text-muted-foreground uppercase tracking-widest text-[9px]">Team</p>
+              <p className="font-bold text-foreground mt-0.5">{scanResult.teamName}</p>
+            </div>
+            <div className="bg-black/40 p-2 rounded border border-white/5">
+              <p className="text-muted-foreground uppercase tracking-widest text-[9px]">Game</p>
+              <p className="font-bold text-foreground mt-0.5">{scanResult.game}</p>
+            </div>
+            <div className="bg-black/40 p-2 rounded border border-white/5">
+              <p className="text-muted-foreground uppercase tracking-widest text-[9px]">Roll No</p>
+              <p className="font-bold font-mono text-foreground mt-0.5">{scanResult.memberRollNo}</p>
+            </div>
+            <div className="bg-black/40 p-2 rounded border border-white/5">
+              <p className="text-muted-foreground uppercase tracking-widest text-[9px]">Role</p>
+              <p className="font-bold text-foreground mt-0.5 capitalize">{scanResult.memberRole}</p>
+            </div>
+          </div>
+
+          {!scanResult.alreadyAttended && (
+            <motion.button whileTap={{ scale: 0.97 }}
+              onClick={() => void handleMarkAttendance()}
+              disabled={marking}
+              className="w-full py-2.5 bg-primary/20 border border-primary/50 text-primary font-orbitron font-bold text-xs tracking-widest hover:bg-primary/30 transition-all disabled:opacity-40">
+              {marking ? 'MARKING…' : 'MARK ATTENDANCE & ALLOW ENTRY'}
+            </motion.button>
+          )}
+
+          <motion.button whileTap={{ scale: 0.97 }} onClick={reset}
+            className="w-full mt-2 py-2 glass border border-white/10 text-muted-foreground font-orbitron font-bold text-[10px] tracking-widest hover:text-foreground transition-all">
+            SCAN NEXT
+          </motion.button>
+        </motion.div>
+      )}
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────
 // Main Admin Panel
 // ─────────────────────────────────────────
 const AdminPanel = () => {
@@ -544,6 +745,9 @@ const AdminPanel = () => {
 
         {/* ── OBS Broadcast Overlay ── */}
         <BroadcastPanel />
+
+        {/* ── QR Attendance Scanner ── */}
+        <AttendanceScanner />
 
         {/* ── Payment Review Queue ── */}
         <div className="mb-6 glass border border-neon-cyan/30 p-4"
