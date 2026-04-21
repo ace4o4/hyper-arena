@@ -726,7 +726,7 @@ export const mockApi = {
     // Fetch team data first so we can send the email notification
     const { data: teamRow, error: fetchError } = await client
       .from("teams")
-      .select("leader_email, team_name, game")
+      .select("leader_email, team_name, game, leader")
       .eq("id", teamId)
       .eq("status", "payment_review")
       .maybeSingle();
@@ -743,11 +743,13 @@ export const mockApi = {
 
     // Send email notification to team leader (fire-and-forget — does not block status update)
     if (teamRow) {
+      const leaderName = (teamRow.leader as TeamMember | null)?.roll_no ?? "";
       mockApi.sendPaymentStatusEmail(
         teamRow.leader_email,
         teamRow.team_name,
         teamRow.game,
         decision,
+        leaderName,
       ).catch((err: unknown) => {
         console.warn("Email notification failed (non-critical):", err);
       });
@@ -762,6 +764,7 @@ export const mockApi = {
     teamName: string,
     game: string,
     decision: PaymentReviewDecision,
+    leaderRollNo?: string,
   ): Promise<void> => {
     const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
     const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
@@ -777,21 +780,45 @@ export const mockApi = {
 
     const { send } = await import("@emailjs/browser");
 
+    const gameLabel = game.toUpperCase();
+    const greeting = leaderRollNo ? `Hi ${leaderRollNo}` : "Hi Team Leader";
+
     const templateParams =
       decision === "approve"
         ? {
             to_email: leaderEmail,
             team_name: teamName,
-            game,
-            subject: "🎮 You've Got a Spot! — GCB Esports Tournament 2026",
-            message: `Congratulations! Your payment for team "${teamName}" (${game}) has been confirmed. You got a spot in GCB Esports Tournament 2026! Head to your dashboard to view your QR tickets and check in on event day.`,
+            game: gameLabel,
+            subject: `🎮 Congratulations! Your Spot is Confirmed — GCB Esports ${gameLabel} 2026`,
+            message:
+              `${greeting},\n\n` +
+              `🎉 Great news! Your payment for team "${teamName}" (${gameLabel}) has been APPROVED and your registration is now CONFIRMED for the GCB Esports Tournament 2026.\n\n` +
+              `✅ What's next?\n` +
+              `• Log in to your dashboard at https://cybersoulz.tech/dashboard\n` +
+              `• Download your QR Tickets from the "QR Tickets" tab\n` +
+              `• Each team member has their own unique QR code — keep them ready for event day check-in\n` +
+              `• Stay tuned on Discord for lobby details, match schedules, and final instructions\n\n` +
+              `See you on the battlefield! 🏆\n\n` +
+              `— GCB Esports Team`,
           }
         : {
             to_email: leaderEmail,
             team_name: teamName,
-            game,
-            subject: "❌ Application Rejected — GCB Esports Tournament 2026",
-            message: `We regret to inform you that your application for team "${teamName}" (${game}) has been rejected as you have broken the rules and guidelines. Please review the tournament rules and try again. If you believe this is an error, contact the organizers.`,
+            game: gameLabel,
+            subject: `❌ Payment Not Verified — GCB Esports ${gameLabel} 2026`,
+            message:
+              `${greeting},\n\n` +
+              `We regret to inform you that your payment submission for team "${teamName}" (${gameLabel}) could NOT be verified and has been rejected.\n\n` +
+              `❗ Common reasons for rejection:\n` +
+              `• UTR number was incorrect or already used\n` +
+              `• Payment screenshot was unclear or invalid\n` +
+              `• Amount paid did not match the registration fee\n\n` +
+              `🔄 What to do next:\n` +
+              `• Log in to your dashboard at https://cybersoulz.tech/dashboard\n` +
+              `• Re-submit your payment with a clear screenshot and correct UTR number\n` +
+              `• If you believe this is an error, contact the organizers on Discord or WhatsApp\n\n` +
+              `We hope to see you participate!\n\n` +
+              `— GCB Esports Team`,
           };
 
     await send(serviceId, templateId, templateParams, { publicKey });

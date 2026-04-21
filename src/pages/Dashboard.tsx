@@ -867,8 +867,14 @@ export default function Dashboard() {
                         <h4 className="font-bold text-lg">{teamData.teamName}</h4>
                         <p className="text-xs text-muted-foreground">Roll No: {teamData.leader.roll_no}</p>
                         <p className="text-xs text-muted-foreground mb-3">UID: {teamData.leader.uid}</p>
-                        <div className="p-2 bg-white rounded-lg mb-3">
+                        <div className="p-2 bg-white rounded-lg mb-2">
                             <QRCodeSVG value={buildQrToken(teamData.id, "leader", teamData.leader.roll_no)} size={150} />
+                        </div>
+                        <div className="w-full mb-3 text-center px-1">
+                          <p className="text-[9px] text-muted-foreground uppercase tracking-widest mb-0.5">QR Token</p>
+                          <p className="text-[9px] font-mono text-foreground/50 break-all select-all leading-relaxed">
+                            {buildQrToken(teamData.id, "leader", teamData.leader.roll_no)}
+                          </p>
                         </div>
                         <p className="text-xs font-bold tracking-widest text-primary mb-3">{teamData.game} SQUAD</p>
                         <Button size="sm" variant="outline" className="text-xs gap-1 border-primary/40 text-primary hover:bg-primary/10"
@@ -884,8 +890,14 @@ export default function Dashboard() {
                             <h4 className="font-bold text-lg">{teamData.teamName}</h4>
                             <p className="text-xs text-muted-foreground">Roll No: {p.roll_no}</p>
                             <p className="text-xs text-muted-foreground mb-3">UID: {p.uid}</p>
-                            <div className="p-2 bg-white rounded-lg mb-3">
+                            <div className="p-2 bg-white rounded-lg mb-2">
                                 <QRCodeSVG value={buildQrToken(teamData.id, "player", p.roll_no)} size={150} />
+                            </div>
+                            <div className="w-full mb-3 text-center px-1">
+                              <p className="text-[9px] text-muted-foreground uppercase tracking-widest mb-0.5">QR Token</p>
+                              <p className="text-[9px] font-mono text-foreground/50 break-all select-all leading-relaxed">
+                                {buildQrToken(teamData.id, "player", p.roll_no)}
+                              </p>
                             </div>
                             <p className="text-xs font-bold tracking-widest text-cyber-purple mb-3">{teamData.game} SQUAD — Player {idx + 2}</p>
                             <Button size="sm" variant="outline" className="text-xs gap-1 border-cyber-purple/40 text-cyber-purple hover:bg-cyber-purple/10"
@@ -903,8 +915,14 @@ export default function Dashboard() {
                             <h4 className="font-bold text-lg">{teamData.teamName}</h4>
                             <p className="text-xs text-muted-foreground">Roll No: {teamData.substitute.roll_no}</p>
                             <p className="text-xs text-muted-foreground mb-3">UID: {teamData.substitute.uid}</p>
-                            <div className="p-2 bg-white rounded-lg mb-3">
+                            <div className="p-2 bg-white rounded-lg mb-2">
                                 <QRCodeSVG value={buildQrToken(teamData.id, "substitute", teamData.substitute.roll_no)} size={150} />
+                            </div>
+                            <div className="w-full mb-3 text-center px-1">
+                              <p className="text-[9px] text-muted-foreground uppercase tracking-widest mb-0.5">QR Token</p>
+                              <p className="text-[9px] font-mono text-foreground/50 break-all select-all leading-relaxed">
+                                {buildQrToken(teamData.id, "substitute", teamData.substitute.roll_no)}
+                              </p>
                             </div>
                             <p className="text-xs font-bold tracking-widest text-neon-red mb-3">{teamData.game} SQUAD — Substitute</p>
                             <Button size="sm" variant="outline" className="text-xs gap-1 border-neon-red/40 text-neon-red hover:bg-neon-red/10"
