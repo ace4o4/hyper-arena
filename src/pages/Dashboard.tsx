@@ -582,7 +582,7 @@ export default function Dashboard() {
             )}
           </motion.div>
 
-          {inviteCode && currentUserId === teamData.user_id && teamData.status === "pending_players" && (
+          {currentUserId === teamData.user_id && teamData.status === "pending_players" && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -613,6 +613,7 @@ export default function Dashboard() {
                 <div className="text-xs uppercase tracking-widest text-primary">Step 1: Build Roster</div>
               </div>
 
+              {/* Invite code and invite link — commented out, not in use right now
               <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="rounded-lg border border-border/40 bg-background/40 p-4">
                   <Label className="text-xs text-muted-foreground">Invite Code</Label>
@@ -634,6 +635,7 @@ export default function Dashboard() {
                   </div>
                 </div>
               </div>
+              */}
             </motion.div>
           )}
 
