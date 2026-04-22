@@ -41,6 +41,7 @@ export default function Dashboard() {
   const [paymentScreenshotFile, setPaymentScreenshotFile] = useState<File | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [copiedState, setCopiedState] = useState<"code" | "link" | null>(null);
+  const [leaderEmail, setLeaderEmail] = useState<string>("");
 
   // Management State
   const [newPlayer, setNewPlayer] = useState({ roll_no: "", email: "", uid: "" });
