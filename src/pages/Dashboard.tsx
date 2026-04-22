@@ -11,6 +11,7 @@ import { Footer } from "@/components/Footer";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { mockApi } from "@/lib/mockApi";
+import { useAuth } from "@/context/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { QRCodeSVG } from 'qrcode.react';
 import mockUpiReceipt from "@/assets/mock_upi_payment.png";
@@ -34,6 +35,7 @@ const downloadTicketPdf = async (elementId: string, filename: string) => {
 export default function Dashboard() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user: authUser, loading: authLoading } = useAuth();
   const [teamData, setTeamData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
@@ -61,16 +63,17 @@ export default function Dashboard() {
   const isUpiConfigured = upiId !== "your-upi-id@bank";
 
   useEffect(() => {
+    if (authLoading) return;
+
     const fetchTeam = async () => {
       try {
-        const user = await mockApi.getCurrentUser();
-        if (!user) {
+        if (!authUser) {
           navigate("/auth");
           return;
         }
-        setCurrentUserId(user.uid);
-        setLeaderEmail(user.email);
-        const team = await mockApi.getTeamByLeader(user.email ?? "");
+        setCurrentUserId(authUser.uid);
+        setLeaderEmail(authUser.email ?? "");
+        const team = await mockApi.getTeamByLeader(authUser.email ?? "");
         if (team) {
           setTeamData(team);
           if (team.players) setPlayers(team.players);
@@ -83,7 +86,7 @@ export default function Dashboard() {
       }
     };
     fetchTeam();
-  }, [navigate]);
+  }, [navigate, authUser, authLoading]);
 
   const handleLogout = () => {
     mockApi.logout();
