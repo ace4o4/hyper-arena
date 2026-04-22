@@ -19,6 +19,13 @@ import mockUpiReceipt from "@/assets/mock_upi_payment.png";
 // Build a deterministic 8-char QR token for a team member
 import { buildQrToken } from '@/lib/qrToken';
 
+// localStorage key prefix for roster drafts (keyed per team so data never mixes)
+const DRAFT_KEY_PREFIX = "ha_roster_draft_";
+
+const clearRosterDraft = (teamId: string) => {
+  try { localStorage.removeItem(`${DRAFT_KEY_PREFIX}${teamId}`); } catch { /* ignore */ }
+};
+
 // Download a single ticket card as PDF
 const downloadTicketPdf = async (elementId: string, filename: string) => {
   const el = document.getElementById(elementId);
@@ -76,8 +83,40 @@ export default function Dashboard() {
         const team = await mockApi.getTeamByLeader(authUser.email ?? "");
         if (team) {
           setTeamData(team);
-          if (team.players) setPlayers(team.players);
-          if (team.substitute) setSubstitute(team.substitute);
+          const serverPlayers: any[] = team.players || [];
+          const serverSub = team.substitute || null;
+
+          // Restore unsaved draft from localStorage when the team hasn't been
+          // submitted yet (i.e. the server has no player data).
+          let restoredPlayers = serverPlayers;
+          let restoredSub = serverSub;
+          let restoredNewPlayer = { roll_no: "", email: "", uid: "" };
+          let restoredSlot: number | null = null;
+
+          if (team.status === "pending_players") {
+            try {
+              const raw = localStorage.getItem(`${DRAFT_KEY_PREFIX}${team.id}`);
+              if (raw) {
+                const draft = JSON.parse(raw);
+                // Only prefer localStorage when server has no submitted players yet
+                if (serverPlayers.length === 0 && draft.players?.length > 0) {
+                  restoredPlayers = draft.players;
+                }
+                if (!serverSub && draft.substitute) {
+                  restoredSub = draft.substitute;
+                }
+                if (draft.newPlayer) restoredNewPlayer = draft.newPlayer;
+                if (draft.activeFormSlot !== undefined) restoredSlot = draft.activeFormSlot;
+              }
+            } catch {
+              // ignore corrupt localStorage data
+            }
+          }
+
+          setPlayers(restoredPlayers);
+          setSubstitute(restoredSub);
+          setNewPlayer(restoredNewPlayer);
+          setActiveFormSlot(restoredSlot);
         }
       } catch (err) {
         console.error("Error fetching team:", err);
@@ -87,6 +126,19 @@ export default function Dashboard() {
     };
     fetchTeam();
   }, [navigate, authUser, authLoading]);
+
+  // Persist roster draft to localStorage whenever it changes (only while pending_players)
+  useEffect(() => {
+    if (!teamData?.id || teamData.status !== "pending_players") return;
+    try {
+      localStorage.setItem(
+        `${DRAFT_KEY_PREFIX}${teamData.id}`,
+        JSON.stringify({ players, substitute, newPlayer, activeFormSlot })
+      );
+    } catch {
+      // ignore write errors (e.g. private-mode storage full)
+    }
+  }, [players, substitute, newPlayer, activeFormSlot, teamData?.id, teamData?.status]);
 
   const handleLogout = () => {
     mockApi.logout();
@@ -106,6 +158,7 @@ export default function Dashboard() {
         title: "Team Deleted",
         description: `"${teamData.teamName}" has been disbanded. You can now create a new team.`,
       });
+      clearRosterDraft(teamData.id);
       setTeamData(null);
       setPlayers([]);
       setSubstitute(null);
@@ -179,6 +232,8 @@ export default function Dashboard() {
     try {
       const updated = await mockApi.updateTeamPlayers(teamData.id, players, substitute);
       setTeamData(updated);
+      // Draft is now committed to the server – clear the local backup
+      clearRosterDraft(teamData.id);
       toast({ title: "Players Submitted", description: "Proceed to payment" });
     } catch(err:any) {
       toast({ title: "Error", description: err.message, variant: "destructive" });
