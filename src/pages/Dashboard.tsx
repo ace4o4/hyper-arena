@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { LogOut, Trophy, Crown, Shield, Users, ArrowRight, Gamepad2, AlertCircle, Plus, Check, Edit2, AlertTriangle, X, Upload, Image as ImageIcon, Trash2, Copy, Link2, MessageCircle, ExternalLink, Download } from "lucide-react";
+import { LogOut, Trophy, Crown, Shield, Users, ArrowRight, Gamepad2, AlertCircle, Plus, Check, Edit2, AlertTriangle, X, Upload, Image as ImageIcon, Trash2, MessageCircle, ExternalLink, Download } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -49,7 +49,6 @@ export default function Dashboard() {
   const [utrNumber, setUtrNumber] = useState("");
   const [paymentScreenshotFile, setPaymentScreenshotFile] = useState<File | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [copiedState, setCopiedState] = useState<"code" | "link" | null>(null);
   const [leaderEmail, setLeaderEmail] = useState<string>("");
 
   // Management State
@@ -331,21 +330,6 @@ export default function Dashboard() {
     }
   };
 
-  const inviteCode = teamData?.inviteCode || "";
-  const inviteLink = (() => {
-    if (!inviteCode) return "";
-    const origin = typeof window !== "undefined" ? window.location.origin : "";
-    const params = new URLSearchParams({
-      mode: "join",
-      inviteCode,
-    });
-
-    if (teamData?.tournamentId) params.set("tournamentId", teamData.tournamentId);
-    if (teamData?.game) params.set("game", teamData.game);
-
-    return `${origin}/create-team?${params.toString()}`;
-  })();
-
   const upiIntentLink = (() => {
     if (!teamData) return "";
 
@@ -362,21 +346,6 @@ export default function Dashboard() {
 
     return `upi://pay?${params.toString()}`;
   })();
-
-  const copyInviteValue = async (type: "code" | "link", value: string) => {
-    if (!value) return;
-    try {
-      await navigator.clipboard.writeText(value);
-      setCopiedState(type);
-      toast({
-        title: type === "code" ? "Invite Code Copied" : "Invite Link Copied",
-        description: type === "code" ? "Share this code with your teammates." : "Share this link with your teammates.",
-      });
-      setTimeout(() => setCopiedState(null), 1500);
-    } catch {
-      toast({ title: "Copy Failed", description: "Could not copy to clipboard.", variant: "destructive" });
-    }
-  };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center text-primary">Loading Dashboard...</div>;
 
@@ -582,7 +551,7 @@ export default function Dashboard() {
             )}
           </motion.div>
 
-          {inviteCode && currentUserId === teamData.user_id && teamData.status === "pending_players" && (
+          {currentUserId === teamData.user_id && teamData.status === "pending_players" && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -591,7 +560,7 @@ export default function Dashboard() {
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
                   <h3 className="text-xl font-black text-neon-cyan mb-1">Invite Teammates</h3>
-                  <p className="text-sm text-muted-foreground">Share invite code/link so teammates can fill their own details and join your roster.</p>
+                  <p className="text-sm text-muted-foreground">Share the WhatsApp community link with your teammates.</p>
                 </div>
                 <div className="glass p-4 rounded-xl border border-green-500/30 bg-green-500/5 hover:border-green-500/50 transition-all group">
                    <div className="flex items-center gap-3 mb-2">
@@ -611,28 +580,6 @@ export default function Dashboard() {
                    </a>
                 </div>
                 <div className="text-xs uppercase tracking-widest text-primary">Step 1: Build Roster</div>
-              </div>
-
-              <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="rounded-lg border border-border/40 bg-background/40 p-4">
-                  <Label className="text-xs text-muted-foreground">Invite Code</Label>
-                  <div className="mt-2 flex items-center gap-2">
-                    <Input value={inviteCode} readOnly className="font-mono tracking-[0.2em] uppercase" />
-                    <Button size="icon" variant="outline" onClick={() => copyInviteValue("code", inviteCode)}>
-                      {copiedState === "code" ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="rounded-lg border border-border/40 bg-background/40 p-4">
-                  <Label className="text-xs text-muted-foreground">Invite Link</Label>
-                  <div className="mt-2 flex items-center gap-2">
-                    <Input value={inviteLink} readOnly className="text-xs" />
-                    <Button size="icon" variant="outline" onClick={() => copyInviteValue("link", inviteLink)}>
-                      {copiedState === "link" ? <Check className="h-4 w-4" /> : <Link2 className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                </div>
               </div>
             </motion.div>
           )}
