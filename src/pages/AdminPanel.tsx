@@ -442,7 +442,7 @@ type ScanResult = {
   memberUid: string;
   memberRole: string;
   alreadyAttended: boolean;
-  markedNow: boolean;
+  markedNow?: boolean;
   teamId: string;
   justMarked?: boolean;
 };
@@ -466,12 +466,14 @@ const AttendanceScanner = () => {
   const { toast } = useToast();
   const [manualToken, setManualToken] = useState('');
   const [scanning, setScanning] = useState(false);
+  const [marking, setMarking] = useState(false);
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
   const [scanError, setScanError] = useState('');
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraLoading, setCameraLoading] = useState(false);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const mountedRef = useRef(true);
+  const isProcessingRef = useRef(false);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -486,11 +488,30 @@ const AttendanceScanner = () => {
     setScanError('');
     try {
       const result = await mockApi.scanQrAttendance(trimmed);
-      setScanResult(result);
+      if (!result.alreadyAttended) {
+        setScanResult(result);
+        setMarking(true);
+        try {
+          await mockApi.markAttendance(
+            result.teamId,
+            result.memberRole as 'leader' | 'player' | 'substitute',
+            result.memberRollNo,
+          );
+          setScanResult({ ...result, alreadyAttended: true, justMarked: true });
+          toast({ title: '✅ Attendance Marked', description: `${result.memberRollNo} — ${result.teamName}` });
+        } catch (err: unknown) {
+          toast({ title: 'Error', description: (err as Error)?.message, variant: 'destructive' });
+        } finally {
+          setMarking(false);
+        }
+      } else {
+        setScanResult(result);
+      }
     } catch (err: unknown) {
       setScanError((err as Error)?.message || 'Could not read QR code.');
     } finally {
       if (mountedRef.current) setScanning(false);
+      isProcessingRef.current = false;
     }
   }, [toast]);
 
@@ -517,6 +538,9 @@ const AttendanceScanner = () => {
           { facingMode: 'environment' },
           { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1 },
           (decodedText: string) => {
+            if (isProcessingRef.current) return;
+            isProcessingRef.current = true;
+
             void stopScannerSafe(scanner);
             scannerRef.current = null;
             if (mountedRef.current) {
@@ -547,29 +571,12 @@ const AttendanceScanner = () => {
   }, [cameraActive, processToken, toast]);
 
   const startCamera = useCallback(() => {
+    isProcessingRef.current = false;
     setCameraLoading(true);
     setCameraActive(true);
   }, []);
 
   useEffect(() => () => { stopCamera(); }, [stopCamera]);
-
-  const handleMarkAttendance = async () => {
-    if (!scanResult) return;
-    setMarking(true);
-    try {
-      await mockApi.markAttendance(
-        scanResult.teamId,
-        scanResult.memberRole as 'leader' | 'player' | 'substitute',
-        scanResult.memberRollNo,
-      );
-      setScanResult({ ...scanResult, alreadyAttended: true });
-      toast({ title: '✅ Attendance Marked', description: `${scanResult.memberRollNo} — ${scanResult.teamName}` });
-    } catch (err: unknown) {
-      toast({ title: 'Error', description: (err as Error)?.message, variant: 'destructive' });
-    } finally {
-      setMarking(false);
-    }
-  };
 
   const reset = () => {
     setScanResult(null);
@@ -685,13 +692,11 @@ const AttendanceScanner = () => {
             </div>
           </div>
 
-          {!scanResult.alreadyAttended && (
-            <motion.button whileTap={{ scale: 0.97 }}
-              onClick={() => void handleMarkAttendance()}
-              disabled={marking}
-              className="w-full py-2.5 bg-primary/20 border border-primary/50 text-primary font-orbitron font-bold text-xs tracking-widest hover:bg-primary/30 transition-all disabled:opacity-40">
-              {marking ? 'MARKING…' : 'MARK ATTENDANCE & ALLOW ENTRY'}
-            </motion.button>
+          {marking && (
+            <div className="w-full py-2.5 bg-primary/20 border border-primary/50 text-primary font-orbitron font-bold text-xs tracking-widest text-center flex items-center justify-center gap-2">
+              <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }} className="w-3 h-3 border-2 border-primary/40 border-t-primary rounded-full" />
+              MARKING…
+            </div>
           )}
 
           <motion.button whileTap={{ scale: 0.97 }} onClick={reset}
