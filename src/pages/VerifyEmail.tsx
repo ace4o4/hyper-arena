@@ -24,6 +24,14 @@ export default function VerifyEmail() {
                 // Wait briefly for Supabase session to be established post-OAuth
                 await new Promise((resolve) => setTimeout(resolve, 1200));
 
+                // If the user arrived via an invite link, restore that destination
+                const savedRedirect = sessionStorage.getItem("ha_post_oauth_redirect");
+                if (savedRedirect) {
+                    sessionStorage.removeItem("ha_post_oauth_redirect");
+                    navigate(savedRedirect, { replace: true });
+                    return;
+                }
+
                 const hasTeam = await mockApi.hasExistingTeam();
 
                 if (hasTeam) {
