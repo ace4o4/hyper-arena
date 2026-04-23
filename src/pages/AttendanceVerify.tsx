@@ -62,7 +62,7 @@ export default function AttendanceVerify() {
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-primary/10 blur-[60px] rounded-full pointer-events-none" />
               <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto mb-4" />
               <p className="font-orbitron text-sm tracking-widest text-primary uppercase">
-                Verifying Ticket…
+                Verifying Ticket...
               </p>
             </Card>
           )}
