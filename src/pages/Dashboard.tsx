@@ -613,29 +613,14 @@ export default function Dashboard() {
                 <div className="text-xs uppercase tracking-widest text-primary">Step 1: Build Roster</div>
               </div>
 
-              {/* Invite code and invite link — commented out, not in use right now
-              <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="rounded-lg border border-border/40 bg-background/40 p-4">
-                  <Label className="text-xs text-muted-foreground">Invite Code</Label>
-                  <div className="mt-2 flex items-center gap-2">
-                    <Input value={inviteCode} readOnly className="font-mono tracking-[0.2em] uppercase" />
-                    <Button size="icon" variant="outline" onClick={() => copyInviteValue("code", inviteCode)}>
-                      {copiedState === "code" ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="rounded-lg border border-border/40 bg-background/40 p-4">
-                  <Label className="text-xs text-muted-foreground">Invite Link</Label>
-                  <div className="mt-2 flex items-center gap-2">
-                    <Input value={inviteLink} readOnly className="text-xs" />
-                    <Button size="icon" variant="outline" onClick={() => copyInviteValue("link", inviteLink)}>
-                      {copiedState === "link" ? <Check className="h-4 w-4" /> : <Link2 className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                </div>
+              {/* Invite URL row */}
+              <div className="mt-4 rounded-lg border border-neon-cyan/20 bg-background/30 px-4 py-3 flex items-center gap-3">
+                <Link2 className="h-4 w-4 text-neon-cyan shrink-0" />
+                <span className="text-xs text-muted-foreground font-mono truncate flex-1 select-all">{inviteLink}</span>
+                <Button size="sm" variant="outline" className="shrink-0 gap-1.5 text-xs border-neon-cyan/30 text-neon-cyan hover:bg-neon-cyan/10" onClick={() => copyInviteValue("link", inviteLink)}>
+                  {copiedState === "link" ? <><Check className="h-3 w-3" /> Copied!</> : <><Copy className="h-3 w-3" /> Copy URL</>}
+                </Button>
               </div>
-              */}
             </motion.div>
           )}
 
