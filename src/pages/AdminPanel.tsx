@@ -666,14 +666,34 @@ const AttendanceScanner = () => {
 
       {scanResult && (
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-          className={`mt-3 p-4 rounded border ${scanResult.alreadyAttended ? 'bg-yellow-500/10 border-yellow-500/40' : 'bg-primary/10 border-primary/40'}`}>
+          className={`mt-3 p-4 rounded border ${
+            marking
+              ? 'bg-primary/10 border-primary/40'                              // marking in progress
+              : scanResult.justMarked
+                ? 'bg-green-500/10 border-green-500/40'                        // just marked ✅
+                : 'bg-yellow-500/10 border-yellow-500/40'                      // already attended ⚠️
+          }`}>
           <div className="flex items-start justify-between gap-2 mb-3">
             <div>
-              <p className={`font-orbitron font-bold text-sm ${scanResult.alreadyAttended ? 'text-yellow-400' : 'text-primary'}`}>
-                {scanResult.alreadyAttended ? '⚠️ Already Attended' : '✅ Valid Ticket'}
+              <p className={`font-orbitron font-bold text-sm ${
+                marking
+                  ? 'text-primary'
+                  : scanResult.justMarked
+                    ? 'text-green-400'
+                    : 'text-yellow-400'
+              }`}>
+                {marking
+                  ? '⏳ Marking Attendance…'
+                  : scanResult.justMarked
+                    ? '✅ Attendance Marked'
+                    : '⚠️ Already Attended'}
               </p>
               <p className="text-[10px] text-muted-foreground mt-0.5 uppercase tracking-widest">
-                {scanResult.alreadyAttended ? 'Entry denied — this QR was already scanned.' : 'First scan — entry allowed.'}
+                {marking
+                  ? 'Please wait…'
+                  : scanResult.justMarked
+                    ? 'Successfully checked in — entry allowed.'
+                    : 'Entry denied — this QR was already scanned.'}
               </p>
             </div>
             <motion.button whileTap={{ scale: 0.9 }} onClick={reset} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></motion.button>
