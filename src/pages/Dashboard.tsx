@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { LogOut, Trophy, Crown, Shield, Users, ArrowRight, Gamepad2, AlertCircle, Plus, Check, Edit2, AlertTriangle, X, Upload, Image as ImageIcon, Trash2, Copy, Link2, MessageCircle, ExternalLink, Download } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -48,6 +48,7 @@ export default function Dashboard() {
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [utrNumber, setUtrNumber] = useState("");
   const [paymentScreenshotFile, setPaymentScreenshotFile] = useState<File | null>(null);
+  const screenshotInputRef = useRef<HTMLInputElement>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [copiedState, setCopiedState] = useState<"code" | "link" | null>(null);
   const [leaderEmail, setLeaderEmail] = useState<string>("");
@@ -819,7 +820,10 @@ export default function Dashboard() {
                             <div>
                                <Label className="text-xs text-muted-foreground">Upload Payment Screenshot</Label>
                                <div className="mt-1 flex items-center justify-center w-full">
-                                  <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-border/30 border-dashed rounded-lg cursor-pointer bg-background/50 hover:bg-background/80 transition-colors">
+                                  <div
+                                    className="flex flex-col items-center justify-center w-full h-32 border-2 border-border/30 border-dashed rounded-lg cursor-pointer bg-background/50 hover:bg-background/80 transition-colors"
+                                    onClick={() => screenshotInputRef.current?.click()}
+                                  >
                                       <div className="flex flex-col items-center justify-center pt-5 pb-6">
                                           <Upload className="w-8 h-8 mb-3 text-muted-foreground" />
                                           <p className="mb-2 text-sm text-muted-foreground">
@@ -829,12 +833,18 @@ export default function Dashboard() {
                                             {paymentScreenshotFile ? paymentScreenshotFile.name : "JPEG, PNG up to 5MB"}
                                           </p>
                                       </div>
-                                      <input type="file" className="hidden" accept="image/*" onChange={(e) => {
+                                      <input
+                                        ref={screenshotInputRef}
+                                        type="file"
+                                        className="hidden"
+                                        accept="image/*"
+                                        onChange={(e) => {
                                           if (e.target.files && e.target.files[0]) {
-                                              setPaymentScreenshotFile(e.target.files[0]);
+                                            setPaymentScreenshotFile(e.target.files[0]);
                                           }
-                                      }} />
-                                  </label>
+                                        }}
+                                      />
+                                  </div>
                                </div>
                             </div>
                         </div>
