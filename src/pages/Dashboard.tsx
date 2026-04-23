@@ -169,7 +169,7 @@ export default function Dashboard() {
     }
   };
 
-  const handleAddPlayer = (isSub: boolean) => {
+  const handleAddPlayer = async (isSub: boolean) => {
     const { roll_no, email, uid } = newPlayer;
     
     // 1. All fields required
@@ -206,32 +206,43 @@ export default function Dashboard() {
       toast({ title: "UID Too Long", description: "Free Fire UID cannot exceed 12 digits.", variant: "destructive" });
       return;
     }
-    
-    if (isSub) {
-       setSubstitute(newPlayer);
-       toast({ title: "Substitute Saved" });
-    } else {
-       const newPlayers = [...players];
-       if (activeFormSlot !== null && activeFormSlot < newPlayers.length) {
-         newPlayers[activeFormSlot] = newPlayer;
-         toast({ title: `Player ${activeFormSlot + 2} Updated` });
-       } else {
-         newPlayers.push(newPlayer);
-         toast({ title: `Player ${newPlayers.length + 1} Added` });
-       }
-       setPlayers(newPlayers);
+
+    setLoading(true);
+    try {
+      if (isSub) {
+        const updated = await mockApi.saveSubstituteToRoster(teamData.id, newPlayer);
+        setTeamData(updated);
+        setSubstitute(updated.substitute);
+        toast({ title: "Substitute Saved" });
+      } else {
+        const updated = await mockApi.savePlayerToRoster(teamData.id, newPlayer, activeFormSlot);
+        setTeamData(updated);
+        setPlayers(updated.players);
+        const isEdit = activeFormSlot !== null && activeFormSlot < players.length;
+        toast({ title: isEdit ? `Player ${activeFormSlot! + 2} Updated` : `Player ${updated.players.length + 1} Added` });
+      }
+      setNewPlayer({ roll_no: "", email: "", uid: "" });
+      setActiveFormSlot(null);
+      clearRosterDraft(teamData.id);
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
     }
-    
-    setNewPlayer({ roll_no: "", email: "", uid: "" });
-    setActiveFormSlot(null);
   };
 
   const handleSubmitPlayers = async () => {
     setShowConfirmModal(false);
     setLoading(true);
     try {
-      const updated = await mockApi.updateTeamPlayers(teamData.id, players, substitute);
+      // Re-fetch fresh server state so any invite-joined players are included
+      const freshTeam = await mockApi.getTeamByLeader(leaderEmail);
+      const latestPlayers = freshTeam?.players ?? players;
+      const latestSubstitute = freshTeam?.substitute ?? substitute;
+      const updated = await mockApi.updateTeamPlayers(teamData.id, latestPlayers, latestSubstitute);
       setTeamData(updated);
+      setPlayers(updated.players);
+      setSubstitute(updated.substitute);
       // Draft is now committed to the server – clear the local backup
       clearRosterDraft(teamData.id);
       toast({ title: "Players Submitted", description: "Proceed to payment" });
