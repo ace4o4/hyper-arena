@@ -96,6 +96,10 @@ const mapDatabaseError = (error: DatabaseError | null, fallback: string) => {
     return "Supabase table `teams` was not found. Run the schema migration first.";
   }
 
+  if (error.code === "42703") {
+    return "Database column not found. Please ensure all database migrations have been applied and try again.";
+  }
+
   return error.message || fallback;
 };
 
@@ -1047,7 +1051,36 @@ export const mockApi = {
       .select("id, team_name, game, leader, players, substitute, checked_in_members, status")
       .eq("status", "confirmed");
 
-    if (error) throw new Error(mapDatabaseError(error, "Could not look up teams."));
+    if (error) {
+      // If the column doesn't exist yet (migration pending), fall back to querying without it
+      if (error.code === "42703") {
+        const { data: teamsNoCol, error: fallbackError } = await client
+          .from("teams")
+          .select("id, team_name, game, leader, players, substitute, status")
+          .eq("status", "confirmed");
+        if (fallbackError) throw new Error(mapDatabaseError(fallbackError, "Could not look up teams."));
+        if (!teamsNoCol || teamsNoCol.length === 0) throw new Error("No confirmed teams found.");
+
+        for (const team of teamsNoCol as Array<TeamRow>) {
+          const roles: Array<{ role: "leader" | "player" | "substitute"; uid: string; rollNo: string }> = [];
+          if (team.leader?.roll_no) roles.push({ role: "leader", uid: team.leader.uid, rollNo: team.leader.roll_no });
+          for (const p of safePlayers(team.players)) roles.push({ role: "player", uid: p.uid, rollNo: p.roll_no });
+          if (team.substitute?.roll_no) roles.push({ role: "substitute", uid: team.substitute.uid, rollNo: team.substitute.roll_no });
+
+          for (const member of roles) {
+            if (buildQrToken(team.id, member.role, member.rollNo) === token) {
+              return {
+                teamId: team.id, teamName: team.team_name, game: team.game,
+                memberRollNo: member.rollNo, memberUid: member.uid, memberRole: member.role,
+                alreadyAttended: false,
+              };
+            }
+          }
+        }
+        throw new Error("QR code is not linked to any registered member.");
+      }
+      throw new Error(mapDatabaseError(error, "Could not look up teams."));
+    }
     if (!teams || teams.length === 0) throw new Error("No confirmed teams found.");
 
     // Scan every member of every team to find whose token matches
@@ -1096,6 +1129,8 @@ export const mockApi = {
       .eq("id", teamId)
       .maybeSingle();
 
+    // If the column doesn't exist yet (migration pending), skip gracefully
+    if (fetchError && fetchError.code === "42703") return;
     if (fetchError) throw new Error(mapDatabaseError(fetchError, "Could not fetch attendance data."));
     if (!data) throw new Error("Team not found.");
 
@@ -1110,6 +1145,6 @@ export const mockApi = {
       .update({ checked_in_members: updated, updated_at: new Date().toISOString() })
       .eq("id", teamId);
 
-    if (updateError) throw new Error(mapDatabaseError(updateError, "Could not save attendance."));
+    if (updateError && updateError.code !== "42703") throw new Error(mapDatabaseError(updateError, "Could not save attendance."));
   },
 };
