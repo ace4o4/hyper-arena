@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { LogOut, Trophy, Crown, Shield, Users, ArrowRight, Gamepad2, AlertCircle, Plus, Check, Edit2, AlertTriangle, X, Upload, Image as ImageIcon, Trash2, Copy, Link2, MessageCircle, ExternalLink, Download } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,12 +11,24 @@ import { Footer } from "@/components/Footer";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { mockApi } from "@/lib/mockApi";
+import { useAuth } from "@/context/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { QRCodeSVG } from 'qrcode.react';
 import mockUpiReceipt from "@/assets/mock_upi_payment.png";
 
 // Build a deterministic 8-char QR token for a team member
 import { buildQrToken } from '@/lib/qrToken';
+
+// Build the full attendance URL encoded into the QR code
+const buildQrUrl = (teamId: string, role: 'leader' | 'player' | 'substitute', rollNo: string) =>
+  `${window.location.origin}/attendance/${buildQrToken(teamId, role, rollNo)}`;
+
+// localStorage key prefix for roster drafts (keyed per team so data never mixes)
+const DRAFT_KEY_PREFIX = "ha_roster_draft_";
+
+const clearRosterDraft = (teamId: string) => {
+  try { localStorage.removeItem(`${DRAFT_KEY_PREFIX}${teamId}`); } catch { /* ignore */ }
+};
 
 // Download a single ticket card as PDF
 const downloadTicketPdf = async (elementId: string, filename: string) => {
@@ -34,13 +46,16 @@ const downloadTicketPdf = async (elementId: string, filename: string) => {
 export default function Dashboard() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user: authUser, loading: authLoading } = useAuth();
   const [teamData, setTeamData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [utrNumber, setUtrNumber] = useState("");
   const [paymentScreenshotFile, setPaymentScreenshotFile] = useState<File | null>(null);
+  const screenshotInputRef = useRef<HTMLInputElement>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [copiedState, setCopiedState] = useState<"code" | "link" | null>(null);
+  const [leaderEmail, setLeaderEmail] = useState<string>("");
 
   // Management State
   const [newPlayer, setNewPlayer] = useState({ roll_no: "", email: "", uid: "" });
@@ -60,20 +75,53 @@ export default function Dashboard() {
   const isUpiConfigured = upiId !== "your-upi-id@bank";
 
   useEffect(() => {
+    if (authLoading) return;
+
     const fetchTeam = async () => {
       try {
-        const user = await mockApi.getCurrentUser();
-        if (!user) {
+        if (!authUser) {
           navigate("/auth");
           return;
         }
-        setCurrentUserId(user.uid);
-        setLeaderEmail(user.email);
-        const team = await mockApi.getTeamByLeader(user.email ?? "");
+        setCurrentUserId(authUser.uid);
+        setLeaderEmail(authUser.email ?? "");
+        const team = await mockApi.getTeamByLeader(authUser.email ?? "");
         if (team) {
           setTeamData(team);
-          if (team.players) setPlayers(team.players);
-          if (team.substitute) setSubstitute(team.substitute);
+          const serverPlayers: any[] = team.players || [];
+          const serverSub = team.substitute || null;
+
+          // Restore unsaved draft from localStorage when the team hasn't been
+          // submitted yet (i.e. the server has no player data).
+          let restoredPlayers = serverPlayers;
+          let restoredSub = serverSub;
+          let restoredNewPlayer = { roll_no: "", email: "", uid: "" };
+          let restoredSlot: number | null = null;
+
+          if (team.status === "pending_players") {
+            try {
+              const raw = localStorage.getItem(`${DRAFT_KEY_PREFIX}${team.id}`);
+              if (raw) {
+                const draft = JSON.parse(raw);
+                // Only prefer localStorage when server has no submitted players yet
+                if (serverPlayers.length === 0 && draft.players?.length > 0) {
+                  restoredPlayers = draft.players;
+                }
+                if (!serverSub && draft.substitute) {
+                  restoredSub = draft.substitute;
+                }
+                if (draft.newPlayer) restoredNewPlayer = draft.newPlayer;
+                if (draft.activeFormSlot !== undefined) restoredSlot = draft.activeFormSlot;
+              }
+            } catch {
+              // ignore corrupt localStorage data
+            }
+          }
+
+          setPlayers(restoredPlayers);
+          setSubstitute(restoredSub);
+          setNewPlayer(restoredNewPlayer);
+          setActiveFormSlot(restoredSlot);
         }
       } catch (err) {
         console.error("Error fetching team:", err);
@@ -82,7 +130,20 @@ export default function Dashboard() {
       }
     };
     fetchTeam();
-  }, [navigate]);
+  }, [navigate, authUser, authLoading]);
+
+  // Persist roster draft to localStorage whenever it changes (only while pending_players)
+  useEffect(() => {
+    if (!teamData?.id || teamData.status !== "pending_players") return;
+    try {
+      localStorage.setItem(
+        `${DRAFT_KEY_PREFIX}${teamData.id}`,
+        JSON.stringify({ players, substitute, newPlayer, activeFormSlot })
+      );
+    } catch {
+      // ignore write errors (e.g. private-mode storage full)
+    }
+  }, [players, substitute, newPlayer, activeFormSlot, teamData?.id, teamData?.status]);
 
   const handleLogout = () => {
     mockApi.logout();
@@ -102,6 +163,7 @@ export default function Dashboard() {
         title: "Team Deleted",
         description: `"${teamData.teamName}" has been disbanded. You can now create a new team.`,
       });
+      clearRosterDraft(teamData.id);
       setTeamData(null);
       setPlayers([]);
       setSubstitute(null);
@@ -112,7 +174,7 @@ export default function Dashboard() {
     }
   };
 
-  const handleAddPlayer = (isSub: boolean) => {
+  const handleAddPlayer = async (isSub: boolean) => {
     const { roll_no, email, uid } = newPlayer;
     
     // 1. All fields required
@@ -149,32 +211,45 @@ export default function Dashboard() {
       toast({ title: "UID Too Long", description: "Free Fire UID cannot exceed 12 digits.", variant: "destructive" });
       return;
     }
-    
-    if (isSub) {
-       setSubstitute(newPlayer);
-       toast({ title: "Substitute Saved" });
-    } else {
-       const newPlayers = [...players];
-       if (activeFormSlot !== null && activeFormSlot < newPlayers.length) {
-         newPlayers[activeFormSlot] = newPlayer;
-         toast({ title: `Player ${activeFormSlot + 2} Updated` });
-       } else {
-         newPlayers.push(newPlayer);
-         toast({ title: `Player ${newPlayers.length + 1} Added` });
-       }
-       setPlayers(newPlayers);
+
+    setLoading(true);
+    try {
+      if (isSub) {
+        const updated = await mockApi.saveSubstituteToRoster(teamData.id, newPlayer);
+        setTeamData(updated);
+        setSubstitute(updated.substitute);
+        toast({ title: "Substitute Saved" });
+      } else {
+        const updated = await mockApi.savePlayerToRoster(teamData.id, newPlayer, activeFormSlot);
+        setTeamData(updated);
+        setPlayers(updated.players);
+        const isEdit = activeFormSlot !== null && activeFormSlot < players.length;
+        toast({ title: isEdit ? `Player ${activeFormSlot! + 2} Updated` : `Player ${updated.players.length + 1} Added` });
+      }
+      setNewPlayer({ roll_no: "", email: "", uid: "" });
+      setActiveFormSlot(null);
+      clearRosterDraft(teamData.id);
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
     }
-    
-    setNewPlayer({ roll_no: "", email: "", uid: "" });
-    setActiveFormSlot(null);
   };
 
   const handleSubmitPlayers = async () => {
     setShowConfirmModal(false);
     setLoading(true);
     try {
-      const updated = await mockApi.updateTeamPlayers(teamData.id, players, substitute);
+      // Re-fetch fresh server state so any invite-joined players are included
+      const freshTeam = await mockApi.getTeamByLeader(leaderEmail);
+      const latestPlayers = freshTeam?.players ?? players;
+      const latestSubstitute = freshTeam?.substitute ?? substitute;
+      const updated = await mockApi.updateTeamPlayers(teamData.id, latestPlayers, latestSubstitute);
       setTeamData(updated);
+      setPlayers(updated.players);
+      setSubstitute(updated.substitute);
+      // Draft is now committed to the server – clear the local backup
+      clearRosterDraft(teamData.id);
       toast({ title: "Players Submitted", description: "Proceed to payment" });
     } catch(err:any) {
       toast({ title: "Error", description: err.message, variant: "destructive" });
@@ -523,7 +598,7 @@ export default function Dashboard() {
             )}
           </motion.div>
 
-          {inviteCode && currentUserId === teamData.user_id && teamData.status === "pending_players" && (
+          {currentUserId === teamData.user_id && teamData.status === "pending_players" && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -554,26 +629,13 @@ export default function Dashboard() {
                 <div className="text-xs uppercase tracking-widest text-primary">Step 1: Build Roster</div>
               </div>
 
-              <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="rounded-lg border border-border/40 bg-background/40 p-4">
-                  <Label className="text-xs text-muted-foreground">Invite Code</Label>
-                  <div className="mt-2 flex items-center gap-2">
-                    <Input value={inviteCode} readOnly className="font-mono tracking-[0.2em] uppercase" />
-                    <Button size="icon" variant="outline" onClick={() => copyInviteValue("code", inviteCode)}>
-                      {copiedState === "code" ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="rounded-lg border border-border/40 bg-background/40 p-4">
-                  <Label className="text-xs text-muted-foreground">Invite Link</Label>
-                  <div className="mt-2 flex items-center gap-2">
-                    <Input value={inviteLink} readOnly className="text-xs" />
-                    <Button size="icon" variant="outline" onClick={() => copyInviteValue("link", inviteLink)}>
-                      {copiedState === "link" ? <Check className="h-4 w-4" /> : <Link2 className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                </div>
+              {/* Invite URL row */}
+              <div className="mt-4 rounded-lg border border-neon-cyan/20 bg-background/30 px-4 py-3 flex items-center gap-3">
+                <Link2 className="h-4 w-4 text-neon-cyan shrink-0" />
+                <span className="text-xs text-muted-foreground font-mono truncate flex-1 select-all">{inviteLink}</span>
+                <Button size="sm" variant="outline" className="shrink-0 gap-1.5 text-xs border-neon-cyan/30 text-neon-cyan hover:bg-neon-cyan/10" onClick={() => copyInviteValue("link", inviteLink)}>
+                  {copiedState === "link" ? <><Check className="h-3 w-3" /> Copied!</> : <><Copy className="h-3 w-3" /> Copy URL</>}
+                </Button>
               </div>
             </motion.div>
           )}
@@ -762,7 +824,10 @@ export default function Dashboard() {
                             <div>
                                <Label className="text-xs text-muted-foreground">Upload Payment Screenshot</Label>
                                <div className="mt-1 flex items-center justify-center w-full">
-                                  <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-border/30 border-dashed rounded-lg cursor-pointer bg-background/50 hover:bg-background/80 transition-colors">
+                                  <div
+                                    className="flex flex-col items-center justify-center w-full h-32 border-2 border-border/30 border-dashed rounded-lg cursor-pointer bg-background/50 hover:bg-background/80 transition-colors"
+                                    onClick={() => screenshotInputRef.current?.click()}
+                                  >
                                       <div className="flex flex-col items-center justify-center pt-5 pb-6">
                                           <Upload className="w-8 h-8 mb-3 text-muted-foreground" />
                                           <p className="mb-2 text-sm text-muted-foreground">
@@ -772,12 +837,18 @@ export default function Dashboard() {
                                             {paymentScreenshotFile ? paymentScreenshotFile.name : "JPEG, PNG up to 5MB"}
                                           </p>
                                       </div>
-                                      <input type="file" className="hidden" accept="image/*" onChange={(e) => {
+                                      <input
+                                        ref={screenshotInputRef}
+                                        type="file"
+                                        className="hidden"
+                                        accept="image/*"
+                                        onChange={(e) => {
                                           if (e.target.files && e.target.files[0]) {
-                                              setPaymentScreenshotFile(e.target.files[0]);
+                                            setPaymentScreenshotFile(e.target.files[0]);
                                           }
-                                      }} />
-                                  </label>
+                                        }}
+                                      />
+                                  </div>
                                </div>
                             </div>
                         </div>
@@ -887,7 +958,7 @@ export default function Dashboard() {
                         <p className="text-xs text-muted-foreground">Roll No: {teamData.leader.roll_no}</p>
                         <p className="text-xs text-muted-foreground mb-3">UID: {teamData.leader.uid}</p>
                         <div className="p-2 bg-white rounded-lg mb-2">
-                            <QRCodeSVG value={buildQrToken(teamData.id, "leader", teamData.leader.roll_no)} size={150} />
+                            <QRCodeSVG value={buildQrUrl(teamData.id, "leader", teamData.leader.roll_no)} size={150} />
                         </div>
                         <div className="w-full mb-3 text-center px-1">
                           <p className="text-[9px] text-muted-foreground uppercase tracking-widest mb-0.5">QR Token</p>
@@ -910,7 +981,7 @@ export default function Dashboard() {
                             <p className="text-xs text-muted-foreground">Roll No: {p.roll_no}</p>
                             <p className="text-xs text-muted-foreground mb-3">UID: {p.uid}</p>
                             <div className="p-2 bg-white rounded-lg mb-2">
-                                <QRCodeSVG value={buildQrToken(teamData.id, "player", p.roll_no)} size={150} />
+                                <QRCodeSVG value={buildQrUrl(teamData.id, "player", p.roll_no)} size={150} />
                             </div>
                             <div className="w-full mb-3 text-center px-1">
                               <p className="text-[9px] text-muted-foreground uppercase tracking-widest mb-0.5">QR Token</p>
@@ -935,7 +1006,7 @@ export default function Dashboard() {
                             <p className="text-xs text-muted-foreground">Roll No: {teamData.substitute.roll_no}</p>
                             <p className="text-xs text-muted-foreground mb-3">UID: {teamData.substitute.uid}</p>
                             <div className="p-2 bg-white rounded-lg mb-2">
-                                <QRCodeSVG value={buildQrToken(teamData.id, "substitute", teamData.substitute.roll_no)} size={150} />
+                                <QRCodeSVG value={buildQrUrl(teamData.id, "substitute", teamData.substitute.roll_no)} size={150} />
                             </div>
                             <div className="w-full mb-3 text-center px-1">
                               <p className="text-[9px] text-muted-foreground uppercase tracking-widest mb-0.5">QR Token</p>

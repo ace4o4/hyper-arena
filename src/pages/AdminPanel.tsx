@@ -5,7 +5,9 @@ import {
   Trash2, RotateCcw, UserPlus, Crosshair, Wifi,
   ChevronRight, Pencil, Check, X, MapPin,
   Monitor, ExternalLink, Copy, CheckCheck, QrCode, Camera, AlertTriangle, Users as UsersIcon,
+  CheckCircle2, XCircle,
 } from 'lucide-react';
+import { Html5Qrcode } from 'html5-qrcode';
 import { mockApi, type TeamRecord } from '@/lib/mockApi';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -440,6 +442,7 @@ type ScanResult = {
   memberUid: string;
   memberRole: string;
   alreadyAttended: boolean;
+  markedNow: boolean;
   teamId: string;
   justMarked?: boolean;
 };
@@ -465,10 +468,9 @@ const AttendanceScanner = () => {
   const [scanning, setScanning] = useState(false);
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
   const [scanError, setScanError] = useState('');
-  const [marking, setMarking] = useState(false);
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraLoading, setCameraLoading] = useState(false);
-  const scannerRef = useRef<{ stop: () => Promise<void> } | null>(null);
+  const scannerRef = useRef<Html5Qrcode | null>(null);
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -485,26 +487,10 @@ const AttendanceScanner = () => {
     try {
       const result = await mockApi.scanQrAttendance(trimmed);
       setScanResult(result);
-      if (!result.alreadyAttended) {
-        setMarking(true);
-        try {
-          await mockApi.markAttendance(
-            result.teamId,
-            result.memberRole as 'leader' | 'player' | 'substitute',
-            result.memberRollNo,
-          );
-          setScanResult({ ...result, alreadyAttended: true, justMarked: true });
-          toast({ title: '✅ Attendance Marked', description: `${result.memberRollNo} — ${result.teamName}` });
-        } catch (err: unknown) {
-          toast({ title: 'Error', description: (err as Error)?.message, variant: 'destructive' });
-        } finally {
-          setMarking(false);
-        }
-      }
     } catch (err: unknown) {
       setScanError((err as Error)?.message || 'Could not read QR code.');
     } finally {
-      setScanning(false);
+      if (mountedRef.current) setScanning(false);
     }
   }, [toast]);
 
@@ -520,15 +506,14 @@ const AttendanceScanner = () => {
   useEffect(() => {
     if (!cameraActive) return;
 
-    let scanner: { stop: () => Promise<void>; start: (...args: unknown[]) => Promise<void> } | null = null;
+    let scanner: Html5Qrcode | null = null;
 
     const initScanner = async () => {
       try {
-        const { Html5Qrcode } = await import('html5-qrcode');
         if (!mountedRef.current) return;
-        scanner = new Html5Qrcode('qr-scanner-container') as unknown as typeof scanner;
-        scannerRef.current = scanner as { stop: () => Promise<void> };
-        await scanner!.start(
+        scanner = new Html5Qrcode('qr-scanner-container');
+        scannerRef.current = scanner;
+        await scanner.start(
           { facingMode: 'environment' },
           { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1 },
           (decodedText: string) => {
@@ -568,7 +553,23 @@ const AttendanceScanner = () => {
 
   useEffect(() => () => { stopCamera(); }, [stopCamera]);
 
-  // Removed handleMarkAttendance as it is automated
+  const handleMarkAttendance = async () => {
+    if (!scanResult) return;
+    setMarking(true);
+    try {
+      await mockApi.markAttendance(
+        scanResult.teamId,
+        scanResult.memberRole as 'leader' | 'player' | 'substitute',
+        scanResult.memberRollNo,
+      );
+      setScanResult({ ...scanResult, alreadyAttended: true });
+      toast({ title: '✅ Attendance Marked', description: `${scanResult.memberRollNo} — ${scanResult.teamName}` });
+    } catch (err: unknown) {
+      toast({ title: 'Error', description: (err as Error)?.message, variant: 'destructive' });
+    } finally {
+      setMarking(false);
+    }
+  };
 
   const reset = () => {
     setScanResult(null);
@@ -619,17 +620,24 @@ const AttendanceScanner = () => {
               {scanning ? '…' : 'Lookup'}
             </motion.button>
           </div>
+          {scanning && (
+            <div className="flex items-center justify-center gap-2 py-2 mb-2">
+              <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                className="w-5 h-5 border-2 border-yellow-400/40 border-t-yellow-400 rounded-full" />
+              <p className="text-[10px] uppercase tracking-widest text-yellow-400">Checking ticket…</p>
+            </div>
+          )}
           <div className="flex justify-center">
             <motion.button whileTap={{ scale: 0.95 }}
               onClick={cameraActive ? stopCamera : startCamera}
-              disabled={cameraLoading}
+              disabled={cameraLoading || scanning}
               className={`flex items-center gap-2 px-4 py-2 text-[10px] font-bold uppercase tracking-widest border transition-colors disabled:opacity-60 ${
                 cameraActive
                   ? 'border-destructive/40 text-destructive hover:bg-destructive/10'
                   : 'border-yellow-400/40 text-yellow-400 hover:bg-yellow-400/10'
               }`}>
               <Camera className="w-3 h-3" />
-              {cameraLoading ? 'Starting…' : cameraActive ? 'Stop Camera' : 'Open Camera'}
+              {cameraLoading ? 'Starting…' : cameraActive ? 'Stop Camera' : scanning ? 'Scanning…' : 'Open Camera'}
             </motion.button>
           </div>
         </>
@@ -645,14 +653,14 @@ const AttendanceScanner = () => {
 
       {scanResult && (
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-          className={`mt-3 p-4 rounded border ${scanResult.alreadyAttended && !scanResult.justMarked ? 'bg-yellow-500/10 border-yellow-500/40' : 'bg-primary/10 border-primary/40'}`}>
+          className={`mt-3 p-4 rounded border ${scanResult.alreadyAttended ? 'bg-yellow-500/10 border-yellow-500/40' : 'bg-primary/10 border-primary/40'}`}>
           <div className="flex items-start justify-between gap-2 mb-3">
             <div>
-              <p className={`font-orbitron font-bold text-sm ${scanResult.alreadyAttended && !scanResult.justMarked ? 'text-yellow-400' : 'text-primary'}`}>
-                {scanResult.alreadyAttended && !scanResult.justMarked ? '⚠️ Already Attended' : '✅ Attendance Marked'}
+              <p className={`font-orbitron font-bold text-sm ${scanResult.alreadyAttended ? 'text-yellow-400' : 'text-primary'}`}>
+                {scanResult.alreadyAttended ? '⚠️ Already Attended' : '✅ Valid Ticket'}
               </p>
               <p className="text-[10px] text-muted-foreground mt-0.5 uppercase tracking-widest">
-                {scanResult.alreadyAttended && !scanResult.justMarked ? 'Entry denied — this QR was already scanned.' : 'Successfully marked — entry allowed.'}
+                {scanResult.alreadyAttended ? 'Entry denied — this QR was already scanned.' : 'First scan — entry allowed.'}
               </p>
             </div>
             <motion.button whileTap={{ scale: 0.9 }} onClick={reset} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></motion.button>
@@ -677,15 +685,17 @@ const AttendanceScanner = () => {
             </div>
           </div>
 
-          {marking && (
-            <div className="w-full py-2.5 bg-primary/20 border border-primary/50 text-primary font-orbitron font-bold text-xs tracking-widest text-center flex items-center justify-center gap-2">
-              <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }} className="w-3 h-3 border-2 border-primary/40 border-t-primary rounded-full" />
-              MARKING…
-            </div>
+          {!scanResult.alreadyAttended && (
+            <motion.button whileTap={{ scale: 0.97 }}
+              onClick={() => void handleMarkAttendance()}
+              disabled={marking}
+              className="w-full py-2.5 bg-primary/20 border border-primary/50 text-primary font-orbitron font-bold text-xs tracking-widest hover:bg-primary/30 transition-all disabled:opacity-40">
+              {marking ? 'MARKING…' : 'MARK ATTENDANCE & ALLOW ENTRY'}
+            </motion.button>
           )}
 
           <motion.button whileTap={{ scale: 0.97 }} onClick={reset}
-            className="w-full mt-2 py-2 glass border border-white/10 text-muted-foreground font-orbitron font-bold text-[10px] tracking-widest hover:text-foreground transition-all">
+            className="w-full mt-1 py-2.5 glass border border-white/10 text-muted-foreground font-orbitron font-bold text-[10px] tracking-widest hover:text-foreground transition-all">
             SCAN NEXT
           </motion.button>
         </motion.div>

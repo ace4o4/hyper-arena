@@ -96,6 +96,10 @@ const mapDatabaseError = (error: DatabaseError | null, fallback: string) => {
     return "Supabase table `teams` was not found. Run the schema migration first.";
   }
 
+  if (error.code === "42703") {
+    return "Database column not found. Please ensure all database migrations have been applied and try again.";
+  }
+
   return error.message || fallback;
 };
 
@@ -445,6 +449,110 @@ export const mockApi = {
     return toTeamRecord(data as TeamRow);
   },
 
+  // Save a single player to a specific roster slot (or append to next available slot).
+  // Always reads fresh server state first so invite-joined players are never overwritten.
+  savePlayerToRoster: async (teamId: string, player: TeamMember, slotIndex: number | null = null): Promise<TeamRecord> => {
+    const client = ensureClient();
+
+    const { data: currentData, error: currentError } = await client
+      .from("teams")
+      .select("*")
+      .eq("id", teamId)
+      .maybeSingle();
+
+    if (currentError) throw new Error(mapDatabaseError(currentError, "Could not fetch team."));
+    if (!currentData) throw new Error("Team not found.");
+
+    const current = currentData as TeamRow;
+
+    if (current.status !== "pending_players") {
+      throw new Error("Roster is locked. Cannot modify players.");
+    }
+
+    const existingPlayers = safePlayers(current.players);
+    let newPlayers: TeamMember[];
+
+    if (slotIndex !== null && slotIndex < existingPlayers.length) {
+      // Edit an existing slot
+      newPlayers = [...existingPlayers];
+      newPlayers[slotIndex] = player;
+    } else {
+      // Append to next available slot
+      if (existingPlayers.length >= 3) {
+        throw new Error("Team is already full.");
+      }
+      newPlayers = [...existingPlayers, player];
+    }
+
+    const metadata = buildMemberMetadata(
+      { roll_no: current.leader.roll_no, uid: current.leader.uid, email: current.leader.email || current.leader_email },
+      newPlayers,
+      current.substitute,
+      current.member_user_ids || []
+    );
+
+    const { data, error } = await client
+      .from("teams")
+      .update({
+        players: newPlayers,
+        member_emails: metadata.memberEmails,
+        member_uids: metadata.memberUids,
+        member_user_ids: metadata.memberUserIds,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", teamId)
+      .select("*")
+      .single();
+
+    if (error) throw new Error(mapDatabaseError(error, "Could not save player."));
+    return toTeamRecord(data as TeamRow);
+  },
+
+  // Save the substitute slot, reading fresh server state first.
+  saveSubstituteToRoster: async (teamId: string, substitute: TeamMember): Promise<TeamRecord> => {
+    const client = ensureClient();
+
+    const { data: currentData, error: currentError } = await client
+      .from("teams")
+      .select("*")
+      .eq("id", teamId)
+      .maybeSingle();
+
+    if (currentError) throw new Error(mapDatabaseError(currentError, "Could not fetch team."));
+    if (!currentData) throw new Error("Team not found.");
+
+    const current = currentData as TeamRow;
+
+    if (current.status !== "pending_players") {
+      throw new Error("Roster is locked. Cannot modify substitute.");
+    }
+
+    const existingPlayers = safePlayers(current.players);
+
+    const metadata = buildMemberMetadata(
+      { roll_no: current.leader.roll_no, uid: current.leader.uid, email: current.leader.email || current.leader_email },
+      existingPlayers,
+      substitute,
+      current.member_user_ids || []
+    );
+
+    const { data, error } = await client
+      .from("teams")
+      .update({
+        substitute,
+        member_emails: metadata.memberEmails,
+        member_uids: metadata.memberUids,
+        member_user_ids: metadata.memberUserIds,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", teamId)
+      .select("*")
+      .single();
+
+    if (error) throw new Error(mapDatabaseError(error, "Could not save substitute."));
+    return toTeamRecord(data as TeamRow);
+  },
+
   joinTeamByInvite: async (inviteCode: string, memberData: TeamMember) => {
     const client = ensureClient();
     const user = await mockApi.getCurrentUser();
@@ -506,7 +614,7 @@ export const mockApi = {
     } else if (!nextSubstitute) {
       nextSubstitute = nextMember;
     } else {
-      throw new Error("Team roster is full.");
+      throw new Error("Team is already full.");
     }
 
     const metadata = buildMemberMetadata(
@@ -562,6 +670,23 @@ export const mockApi = {
       return toTeamRecord(ownedTeams[0] as TeamRow);
     }
 
+    // Reliable lookup by member_user_ids (set when joinTeamByInvite adds the user)
+    const { data: memberByUserIdTeams, error: memberUserIdError } = await client
+      .from("teams")
+      .select("*")
+      .contains("member_user_ids", [user.uid])
+      .order("created_at", { ascending: false })
+      .limit(1);
+
+    if (memberUserIdError) {
+      throw new Error(mapDatabaseError(memberUserIdError, "Could not fetch member team."));
+    }
+
+    if (memberByUserIdTeams && memberByUserIdTeams.length > 0) {
+      return toTeamRecord(memberByUserIdTeams[0] as TeamRow);
+    }
+
+    // Fallback: lookup by email (covers older records that may not have member_user_ids)
     const normalizedEmail = normalizeEmail(leaderEmail || user.email || "");
     if (!normalizedEmail) return null;
 
@@ -926,7 +1051,36 @@ export const mockApi = {
       .select("id, team_name, game, leader, players, substitute, checked_in_members, status")
       .eq("status", "confirmed");
 
-    if (error) throw new Error(mapDatabaseError(error, "Could not look up teams."));
+    if (error) {
+      // If the column doesn't exist yet (migration pending), fall back to querying without it
+      if (error.code === "42703") {
+        const { data: teamsNoCol, error: fallbackError } = await client
+          .from("teams")
+          .select("id, team_name, game, leader, players, substitute, status")
+          .eq("status", "confirmed");
+        if (fallbackError) throw new Error(mapDatabaseError(fallbackError, "Could not look up teams."));
+        if (!teamsNoCol || teamsNoCol.length === 0) throw new Error("No confirmed teams found.");
+
+        for (const team of teamsNoCol as Array<TeamRow>) {
+          const roles: Array<{ role: "leader" | "player" | "substitute"; uid: string; rollNo: string }> = [];
+          if (team.leader?.roll_no) roles.push({ role: "leader", uid: team.leader.uid, rollNo: team.leader.roll_no });
+          for (const p of safePlayers(team.players)) roles.push({ role: "player", uid: p.uid, rollNo: p.roll_no });
+          if (team.substitute?.roll_no) roles.push({ role: "substitute", uid: team.substitute.uid, rollNo: team.substitute.roll_no });
+
+          for (const member of roles) {
+            if (buildQrToken(team.id, member.role, member.rollNo) === token) {
+              return {
+                teamId: team.id, teamName: team.team_name, game: team.game,
+                memberRollNo: member.rollNo, memberUid: member.uid, memberRole: member.role,
+                alreadyAttended: false,
+              };
+            }
+          }
+        }
+        throw new Error("QR code is not linked to any registered member.");
+      }
+      throw new Error(mapDatabaseError(error, "Could not look up teams."));
+    }
     if (!teams || teams.length === 0) throw new Error("No confirmed teams found.");
 
     // Scan every member of every team to find whose token matches
@@ -975,6 +1129,8 @@ export const mockApi = {
       .eq("id", teamId)
       .maybeSingle();
 
+    // If the column doesn't exist yet (migration pending), skip gracefully
+    if (fetchError && fetchError.code === "42703") return;
     if (fetchError) throw new Error(mapDatabaseError(fetchError, "Could not fetch attendance data."));
     if (!data) throw new Error("Team not found.");
 
@@ -989,6 +1145,6 @@ export const mockApi = {
       .update({ checked_in_members: updated, updated_at: new Date().toISOString() })
       .eq("id", teamId);
 
-    if (updateError) throw new Error(mapDatabaseError(updateError, "Could not save attendance."));
+    if (updateError && updateError.code !== "42703") throw new Error(mapDatabaseError(updateError, "Could not save attendance."));
   },
 };
