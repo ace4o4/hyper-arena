@@ -516,9 +516,10 @@ const AttendanceScanner = () => {
       }
     } catch (err: unknown) {
       setScanError((err as Error)?.message || 'Could not read QR code.');
+      // On error, release the lock so user can try again
+      isProcessingRef.current = false;
     } finally {
       if (mountedRef.current) setScanning(false);
-      isProcessingRef.current = false;
     }
   }, [toast]);
 
@@ -583,6 +584,7 @@ const AttendanceScanner = () => {
   useEffect(() => () => { stopCamera(); }, [stopCamera]);
 
   const reset = () => {
+    isProcessingRef.current = false;  // release lock so next scan works
     setScanResult(null);
     setScanError('');
     setManualToken('');
