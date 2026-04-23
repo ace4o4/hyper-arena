@@ -220,7 +220,9 @@ export default function Login() {
                                 onClick={async () => {
                                 setLoading(true);
                                 try {
-                                    // Persist the post-login destination so VerifyEmail can restore it after OAuth
+                                    // Persist the post-login destination so VerifyEmail can restore it after OAuth.
+                                    // We skip the default fallback ("/tournaments") to avoid always forcing that
+                                    // path when no specific redirect was requested.
                                     if (redirectTo && redirectTo !== "/tournaments") {
                                         sessionStorage.setItem("ha_post_oauth_redirect", redirectTo);
                                     }
