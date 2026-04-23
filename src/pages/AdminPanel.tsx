@@ -481,8 +481,15 @@ const AttendanceScanner = () => {
   }, []);
 
   const processToken = useCallback(async (token: string) => {
+    // Hard guard — if a scan is already being processed, ignore any duplicate callbacks
+    if (isProcessingRef.current) return;
+    isProcessingRef.current = true;
+
     const trimmed = token.trim();
-    if (!trimmed) return;
+    if (!trimmed) {
+      isProcessingRef.current = false;
+      return;
+    }
     setScanning(true);
     setScanResult(null);
     setScanError('');
@@ -538,9 +545,6 @@ const AttendanceScanner = () => {
           { facingMode: 'environment' },
           { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1 },
           (decodedText: string) => {
-            if (isProcessingRef.current) return;
-            isProcessingRef.current = true;
-
             void stopScannerSafe(scanner);
             scannerRef.current = null;
             if (mountedRef.current) {

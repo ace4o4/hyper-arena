@@ -1038,7 +1038,19 @@ export const mockApi = {
   }> => {
     const client = ensureClient();
 
-    const token = qrToken.trim().toUpperCase();
+    const raw = qrToken.trim();
+
+    // If the QR code contains a full URL (e.g. https://cybersoulz.tech/attendance/A3BZ7K9X),
+    // extract just the last path segment as the token.
+    let token: string;
+    try {
+      const url = new URL(raw);
+      const segments = url.pathname.split('/').filter(Boolean);
+      token = (segments[segments.length - 1] ?? raw).toUpperCase();
+    } catch {
+      // Not a URL — treat the whole string as the token
+      token = raw.toUpperCase();
+    }
 
     // Basic format validation: 8 uppercase alphanumeric chars
     if (!/^[A-Z0-9]{8}$/.test(token)) {
