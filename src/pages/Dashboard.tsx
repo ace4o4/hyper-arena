@@ -19,6 +19,10 @@ import mockUpiReceipt from "@/assets/mock_upi_payment.png";
 // Build a deterministic 8-char QR token for a team member
 import { buildQrToken } from '@/lib/qrToken';
 
+// Build the full attendance URL encoded into the QR code
+const buildQrUrl = (teamId: string, role: 'leader' | 'player' | 'substitute', rollNo: string) =>
+  `${window.location.origin}/attendance/${buildQrToken(teamId, role, rollNo)}`;
+
 // localStorage key prefix for roster drafts (keyed per team so data never mixes)
 const DRAFT_KEY_PREFIX = "ha_roster_draft_";
 
@@ -954,7 +958,7 @@ export default function Dashboard() {
                         <p className="text-xs text-muted-foreground">Roll No: {teamData.leader.roll_no}</p>
                         <p className="text-xs text-muted-foreground mb-3">UID: {teamData.leader.uid}</p>
                         <div className="p-2 bg-white rounded-lg mb-2">
-                            <QRCodeSVG value={buildQrToken(teamData.id, "leader", teamData.leader.roll_no)} size={150} />
+                            <QRCodeSVG value={buildQrUrl(teamData.id, "leader", teamData.leader.roll_no)} size={150} />
                         </div>
                         <div className="w-full mb-3 text-center px-1">
                           <p className="text-[9px] text-muted-foreground uppercase tracking-widest mb-0.5">QR Token</p>
@@ -977,7 +981,7 @@ export default function Dashboard() {
                             <p className="text-xs text-muted-foreground">Roll No: {p.roll_no}</p>
                             <p className="text-xs text-muted-foreground mb-3">UID: {p.uid}</p>
                             <div className="p-2 bg-white rounded-lg mb-2">
-                                <QRCodeSVG value={buildQrToken(teamData.id, "player", p.roll_no)} size={150} />
+                                <QRCodeSVG value={buildQrUrl(teamData.id, "player", p.roll_no)} size={150} />
                             </div>
                             <div className="w-full mb-3 text-center px-1">
                               <p className="text-[9px] text-muted-foreground uppercase tracking-widest mb-0.5">QR Token</p>
@@ -1002,7 +1006,7 @@ export default function Dashboard() {
                             <p className="text-xs text-muted-foreground">Roll No: {teamData.substitute.roll_no}</p>
                             <p className="text-xs text-muted-foreground mb-3">UID: {teamData.substitute.uid}</p>
                             <div className="p-2 bg-white rounded-lg mb-2">
-                                <QRCodeSVG value={buildQrToken(teamData.id, "substitute", teamData.substitute.roll_no)} size={150} />
+                                <QRCodeSVG value={buildQrUrl(teamData.id, "substitute", teamData.substitute.roll_no)} size={150} />
                             </div>
                             <div className="w-full mb-3 text-center px-1">
                               <p className="text-[9px] text-muted-foreground uppercase tracking-widest mb-0.5">QR Token</p>
