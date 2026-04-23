@@ -445,6 +445,110 @@ export const mockApi = {
     return toTeamRecord(data as TeamRow);
   },
 
+  // Save a single player to a specific roster slot (or append to next available slot).
+  // Always reads fresh server state first so invite-joined players are never overwritten.
+  savePlayerToRoster: async (teamId: string, player: TeamMember, slotIndex: number | null = null): Promise<TeamRecord> => {
+    const client = ensureClient();
+
+    const { data: currentData, error: currentError } = await client
+      .from("teams")
+      .select("*")
+      .eq("id", teamId)
+      .maybeSingle();
+
+    if (currentError) throw new Error(mapDatabaseError(currentError, "Could not fetch team."));
+    if (!currentData) throw new Error("Team not found.");
+
+    const current = currentData as TeamRow;
+
+    if (current.status !== "pending_players") {
+      throw new Error("Roster is locked. Cannot modify players.");
+    }
+
+    const existingPlayers = safePlayers(current.players);
+    let newPlayers: TeamMember[];
+
+    if (slotIndex !== null && slotIndex < existingPlayers.length) {
+      // Edit an existing slot
+      newPlayers = [...existingPlayers];
+      newPlayers[slotIndex] = player;
+    } else {
+      // Append to next available slot
+      if (existingPlayers.length >= 3) {
+        throw new Error("Team is already full.");
+      }
+      newPlayers = [...existingPlayers, player];
+    }
+
+    const metadata = buildMemberMetadata(
+      { roll_no: current.leader.roll_no, uid: current.leader.uid, email: current.leader.email || current.leader_email },
+      newPlayers,
+      current.substitute,
+      current.member_user_ids || []
+    );
+
+    const { data, error } = await client
+      .from("teams")
+      .update({
+        players: newPlayers,
+        member_emails: metadata.memberEmails,
+        member_uids: metadata.memberUids,
+        member_user_ids: metadata.memberUserIds,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", teamId)
+      .select("*")
+      .single();
+
+    if (error) throw new Error(mapDatabaseError(error, "Could not save player."));
+    return toTeamRecord(data as TeamRow);
+  },
+
+  // Save the substitute slot, reading fresh server state first.
+  saveSubstituteToRoster: async (teamId: string, substitute: TeamMember): Promise<TeamRecord> => {
+    const client = ensureClient();
+
+    const { data: currentData, error: currentError } = await client
+      .from("teams")
+      .select("*")
+      .eq("id", teamId)
+      .maybeSingle();
+
+    if (currentError) throw new Error(mapDatabaseError(currentError, "Could not fetch team."));
+    if (!currentData) throw new Error("Team not found.");
+
+    const current = currentData as TeamRow;
+
+    if (current.status !== "pending_players") {
+      throw new Error("Roster is locked. Cannot modify substitute.");
+    }
+
+    const existingPlayers = safePlayers(current.players);
+
+    const metadata = buildMemberMetadata(
+      { roll_no: current.leader.roll_no, uid: current.leader.uid, email: current.leader.email || current.leader_email },
+      existingPlayers,
+      substitute,
+      current.member_user_ids || []
+    );
+
+    const { data, error } = await client
+      .from("teams")
+      .update({
+        substitute,
+        member_emails: metadata.memberEmails,
+        member_uids: metadata.memberUids,
+        member_user_ids: metadata.memberUserIds,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", teamId)
+      .select("*")
+      .single();
+
+    if (error) throw new Error(mapDatabaseError(error, "Could not save substitute."));
+    return toTeamRecord(data as TeamRow);
+  },
+
   joinTeamByInvite: async (inviteCode: string, memberData: TeamMember) => {
     const client = ensureClient();
     const user = await mockApi.getCurrentUser();
@@ -506,7 +610,7 @@ export const mockApi = {
     } else if (!nextSubstitute) {
       nextSubstitute = nextMember;
     } else {
-      throw new Error("Team roster is full.");
+      throw new Error("Team is already full.");
     }
 
     const metadata = buildMemberMetadata(
