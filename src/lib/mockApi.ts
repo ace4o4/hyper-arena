@@ -97,7 +97,7 @@ const mapDatabaseError = (error: DatabaseError | null, fallback: string) => {
   }
 
   if (error.code === "42703") {
-    return "Database column not found. Please run the latest migrations (supabase db push) and try again.";
+    return "Database column not found. Please ensure all database migrations have been applied and try again.";
   }
 
   return error.message || fallback;

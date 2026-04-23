@@ -614,7 +614,7 @@ const AttendanceScanner = () => {
                   : 'border-yellow-400/40 text-yellow-400 hover:bg-yellow-400/10'
               }`}>
               <Camera className="w-3 h-3" />
-              {cameraLoading ? 'Starting…' : cameraActive ? 'Stop Camera' : 'Open Camera'}
+              {cameraLoading ? 'Starting…' : cameraActive ? 'Stop Camera' : scanning ? 'Scanning…' : 'Open Camera'}
             </motion.button>
           </div>
         </>
