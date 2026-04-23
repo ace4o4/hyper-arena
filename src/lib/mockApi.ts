@@ -562,6 +562,23 @@ export const mockApi = {
       return toTeamRecord(ownedTeams[0] as TeamRow);
     }
 
+    // Reliable lookup by member_user_ids (set when joinTeamByInvite adds the user)
+    const { data: memberByUserIdTeams, error: memberUserIdError } = await client
+      .from("teams")
+      .select("*")
+      .contains("member_user_ids", [user.uid])
+      .order("created_at", { ascending: false })
+      .limit(1);
+
+    if (memberUserIdError) {
+      throw new Error(mapDatabaseError(memberUserIdError, "Could not fetch member team."));
+    }
+
+    if (memberByUserIdTeams && memberByUserIdTeams.length > 0) {
+      return toTeamRecord(memberByUserIdTeams[0] as TeamRow);
+    }
+
+    // Fallback: lookup by email (covers older records that may not have member_user_ids)
     const normalizedEmail = normalizeEmail(leaderEmail || user.email || "");
     if (!normalizedEmail) return null;
 

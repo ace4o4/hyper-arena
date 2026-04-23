@@ -220,6 +220,10 @@ export default function Login() {
                                 onClick={async () => {
                                 setLoading(true);
                                 try {
+                                    // Persist the post-login destination so VerifyEmail can restore it after OAuth
+                                    if (redirectTo && redirectTo !== "/tournaments") {
+                                        sessionStorage.setItem("ha_post_oauth_redirect", redirectTo);
+                                    }
                                     await mockApi.loginWithGoogle();
                                 } finally {
                                     setLoading(false);
