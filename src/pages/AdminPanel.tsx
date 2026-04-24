@@ -495,25 +495,7 @@ const AttendanceScanner = () => {
     setScanError('');
     try {
       const result = await mockApi.scanQrAttendance(trimmed);
-      if (!result.alreadyAttended) {
-        setScanResult(result);
-        setMarking(true);
-        try {
-          await mockApi.markAttendance(
-            result.teamId,
-            result.memberRole as 'leader' | 'player' | 'substitute',
-            result.memberRollNo,
-          );
-          setScanResult({ ...result, alreadyAttended: true, justMarked: true });
-          toast({ title: '✅ Attendance Marked', description: `${result.memberRollNo} — ${result.teamName}` });
-        } catch (err: unknown) {
-          toast({ title: 'Error', description: (err as Error)?.message, variant: 'destructive' });
-        } finally {
-          setMarking(false);
-        }
-      } else {
-        setScanResult(result);
-      }
+      setScanResult(result);
     } catch (err: unknown) {
       setScanError((err as Error)?.message || 'Could not read QR code.');
       // On error, release the lock so user can try again
@@ -521,7 +503,25 @@ const AttendanceScanner = () => {
     } finally {
       if (mountedRef.current) setScanning(false);
     }
-  }, [toast]);
+  }, []);
+
+  const markManually = useCallback(async () => {
+    if (!scanResult) return;
+    setMarking(true);
+    try {
+      await mockApi.markAttendance(
+        scanResult.teamId,
+        scanResult.memberRole as 'leader' | 'player' | 'substitute',
+        scanResult.memberRollNo,
+      );
+      setScanResult({ ...scanResult, alreadyAttended: true, justMarked: true });
+      toast({ title: '✅ Attendance Marked', description: `${scanResult.memberRollNo} — ${scanResult.teamName}` });
+    } catch (err: unknown) {
+      toast({ title: 'Error', description: (err as Error)?.message, variant: 'destructive' });
+    } finally {
+      setMarking(false);
+    }
+  }, [scanResult, toast]);
 
   const stopCamera = useCallback(() => {
     if (scannerRef.current) {
@@ -671,7 +671,9 @@ const AttendanceScanner = () => {
               ? 'bg-primary/10 border-primary/40'                              // marking in progress
               : scanResult.justMarked
                 ? 'bg-green-500/10 border-green-500/40'                        // just marked ✅
-                : 'bg-yellow-500/10 border-yellow-500/40'                      // already attended ⚠️
+                : scanResult.alreadyAttended
+                  ? 'bg-yellow-500/10 border-yellow-500/40'                      // already attended ⚠️
+                  : 'bg-primary/10 border-primary/40'                            // valid, ready to mark
           }`}>
           <div className="flex items-start justify-between gap-2 mb-3">
             <div>
@@ -680,20 +682,26 @@ const AttendanceScanner = () => {
                   ? 'text-primary'
                   : scanResult.justMarked
                     ? 'text-green-400'
-                    : 'text-yellow-400'
+                    : scanResult.alreadyAttended
+                      ? 'text-yellow-400'
+                      : 'text-primary'
               }`}>
                 {marking
                   ? '⏳ Marking Attendance…'
                   : scanResult.justMarked
                     ? '✅ Attendance Marked'
-                    : '⚠️ Already Attended'}
+                    : scanResult.alreadyAttended
+                      ? '⚠️ Already Attended'
+                      : '✅ Valid Ticket'}
               </p>
               <p className="text-[10px] text-muted-foreground mt-0.5 uppercase tracking-widest">
                 {marking
                   ? 'Please wait…'
                   : scanResult.justMarked
                     ? 'Successfully checked in — entry allowed.'
-                    : 'Entry denied — this QR was already scanned.'}
+                    : scanResult.alreadyAttended
+                      ? 'Entry denied — this QR was already scanned.'
+                      : 'Ticket is valid. Please mark attendance.'}
               </p>
             </div>
             <motion.button whileTap={{ scale: 0.9 }} onClick={reset} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></motion.button>
@@ -724,6 +732,13 @@ const AttendanceScanner = () => {
               MARKING…
             </div>
           )}
+
+          {!scanResult.alreadyAttended && !scanResult.justMarked ? (
+            <motion.button whileTap={{ scale: 0.97 }} onClick={markManually} disabled={marking}
+              className="w-full mt-1 py-2.5 bg-green-500/20 border border-green-500/50 text-green-400 font-orbitron font-bold text-[10px] tracking-widest hover:bg-green-500/30 transition-all mb-2">
+              MARK ATTENDED & SCAN NEXT
+            </motion.button>
+          ) : null}
 
           <motion.button whileTap={{ scale: 0.97 }} onClick={reset}
             className="w-full mt-1 py-2.5 glass border border-white/10 text-muted-foreground font-orbitron font-bold text-[10px] tracking-widest hover:text-foreground transition-all">
