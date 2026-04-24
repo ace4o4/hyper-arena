@@ -914,40 +914,40 @@ export const mockApi = {
     const templateParams =
       decision === "approve"
         ? {
-            to_email: leaderEmail,
-            team_name: teamName,
-            game: gameLabel,
-            subject: `🎮 Congratulations! Your Spot is Confirmed — GCB Esports ${gameLabel} 2026`,
-            message:
-              `${greeting},\n\n` +
-              `🎉 Great news! Your payment for team "${teamName}" (${gameLabel}) has been APPROVED and your registration is now CONFIRMED for the GCB Esports Tournament 2026.\n\n` +
-              `✅ What's next?\n` +
-              `• Log in to your dashboard at ${DASHBOARD_URL}\n` +
-              `• Download your QR Tickets from the "QR Tickets" tab\n` +
-              `• Each team member has their own unique QR code — keep them ready for event day check-in\n` +
-              `• Stay tuned on Discord for lobby details, match schedules, and final instructions\n\n` +
-              `See you on the battlefield! 🏆\n\n` +
-              `— GCB Esports Team`,
-          }
+          to_email: leaderEmail,
+          team_name: teamName,
+          game: gameLabel,
+          subject: `🎮 Congratulations! Your Spot is Confirmed — GCB Esports ${gameLabel} 2026`,
+          message:
+            `${greeting},\n\n` +
+            `🎉 Great news! Your payment for team "${teamName}" (${gameLabel}) has been APPROVED and your registration is now CONFIRMED for the GCB Esports Tournament 2026.\n\n` +
+            `✅ What's next?\n` +
+            `• Log in to your dashboard at ${DASHBOARD_URL}\n` +
+            `• Download your QR Tickets from the "QR Tickets" tab\n` +
+            `• Each team member has their own unique QR code — keep them ready for event day check-in\n` +
+            `• Stay tuned on Discord for lobby details, match schedules, and final instructions\n\n` +
+            `See you on the battlefield! 🏆\n\n` +
+            `— GCB Esports Team`,
+        }
         : {
-            to_email: leaderEmail,
-            team_name: teamName,
-            game: gameLabel,
-            subject: `❌ Payment Not Verified — GCB Esports ${gameLabel} 2026`,
-            message:
-              `${greeting},\n\n` +
-              `We regret to inform you that your payment submission for team "${teamName}" (${gameLabel}) could NOT be verified and has been rejected.\n\n` +
-              `❗ Common reasons for rejection:\n` +
-              `• UTR number was incorrect or already used\n` +
-              `• Payment screenshot was unclear or invalid\n` +
-              `• Amount paid did not match the registration fee\n\n` +
-              `🔄 What to do next:\n` +
-              `• Log in to your dashboard at ${DASHBOARD_URL}\n` +
-              `• Re-submit your payment with a clear screenshot and correct UTR number\n` +
-              `• If you believe this is an error, contact the organizers on Discord or WhatsApp\n\n` +
-              `We hope to see you participate!\n\n` +
-              `— GCB Esports Team`,
-          };
+          to_email: leaderEmail,
+          team_name: teamName,
+          game: gameLabel,
+          subject: `❌ Payment Not Verified — GCB Esports ${gameLabel} 2026`,
+          message:
+            `${greeting},\n\n` +
+            `We regret to inform you that your payment submission for team "${teamName}" (${gameLabel}) could NOT be verified and has been rejected.\n\n` +
+            `❗ Common reasons for rejection:\n` +
+            `• UTR number was incorrect or already used\n` +
+            `• Payment screenshot was unclear or invalid\n` +
+            `• Amount paid did not match the registration fee\n\n` +
+            `🔄 What to do next:\n` +
+            `• Log in to your dashboard at ${DASHBOARD_URL}\n` +
+            `• Re-submit your payment with a clear screenshot and correct UTR number\n` +
+            `• If you believe this is an error, contact the organizers on Discord or WhatsApp\n\n` +
+            `We hope to see you participate!\n\n` +
+            `— GCB Esports Team`,
+        };
 
     await send(serviceId, templateId, templateParams, { publicKey });
   },
@@ -1000,7 +1000,7 @@ export const mockApi = {
 
   uploadTeamLogo: async (teamId: string, file: File): Promise<string> => {
     const client = ensureClient();
-    
+
     const fileExt = file.name.split('.').pop();
     const fileName = `${teamId}-${Date.now()}.${fileExt}`;
     const filePath = `${fileName}`;
@@ -1057,11 +1057,12 @@ export const mockApi = {
       throw new Error("Invalid QR code. Must be an 8-character alphanumeric token.");
     }
 
-    // Fetch all confirmed teams
+    // Fetch all confirmed teams with cache-buster condition to ensure live update
     const { data: teams, error } = await client
       .from("teams")
       .select("id, team_name, game, leader, players, substitute, checked_in_members, status")
-      .eq("status", "confirmed");
+      .eq("status", "confirmed")
+      .neq("status", `_cache_${Date.now()}`); // Forces a fresh HTTP GET request
 
     if (error) {
       // If the column doesn't exist yet (migration pending), fall back to querying without it
@@ -1069,7 +1070,8 @@ export const mockApi = {
         const { data: teamsNoCol, error: fallbackError } = await client
           .from("teams")
           .select("id, team_name, game, leader, players, substitute, status")
-          .eq("status", "confirmed");
+          .eq("status", "confirmed")
+          .neq("status", `_cache_${Date.now()}`);
         if (fallbackError) throw new Error(mapDatabaseError(fallbackError, "Could not look up teams."));
         if (!teamsNoCol || teamsNoCol.length === 0) throw new Error("No confirmed teams found.");
 
@@ -1155,7 +1157,9 @@ export const mockApi = {
     const { error: updateError } = await client
       .from("teams")
       .update({ checked_in_members: updated, updated_at: new Date().toISOString() })
-      .eq("id", teamId);
+      .eq("id", teamId)
+      .select("id")
+      .single();
 
     if (updateError && updateError.code !== "42703") throw new Error(mapDatabaseError(updateError, "Could not save attendance."));
   },
