@@ -2,6 +2,10 @@
 
 Esports tournament registration app built with Vite, React, TypeScript, Tailwind, and Supabase.
 
+
+
+
+
 ## Local development..
 
 ```bash
