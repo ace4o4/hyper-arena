@@ -7,7 +7,6 @@ Esports tournament registration app built with Vite, React, TypeScript, Tailwind
 ```bash
 
 
-
 npm ci
 npm run dev
 ```
