@@ -23,7 +23,6 @@ This repo uses GitHub Actions for deployment via [.github/workflows/deploy-pages
 
 
 
-
 1. Open repository Settings -> Pages.
 2. Set Source to GitHub Actions.
 3. Add Actions Variables in Settings -> Secrets and variables -> Actions:
