@@ -1,7 +1,7 @@
 {
 
 
-sssdxd
+sss
   "compilerOptions": {
     "target": "ES2020",
     "useDefineForClassFields": true,
