@@ -20,7 +20,6 @@ export default tseslint.config(
 
 
 
-
     
     
     rules: {
